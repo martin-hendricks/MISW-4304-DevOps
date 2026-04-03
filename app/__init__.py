@@ -3,6 +3,7 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_restful import Api
 from flask_marshmallow import Marshmallow
 from flask_jwt_extended import JWTManager
+from sqlalchemy import text
 
 db = SQLAlchemy()
 ma = Marshmallow()
@@ -30,6 +31,16 @@ def create_app():
     def expired_token_callback(jwt_header, jwt_payload):
         return jsonify({'message': 'Authorization token has expired'}), 401
 
+    @app.get('/')
+    def health():
+        return jsonify({'status': 'ok', 'message': 'pong'}), 200
+
+    
+    @app.get('/health')
+    def ping():
+        return jsonify({'status': 'ok', 'message': 'pong'}), 200
+
+
     api = Api(app)
 
     from .resources.blacklist_resource import BlacklistResource, BlacklistQueryResource
@@ -39,7 +50,6 @@ def create_app():
     api.add_resource(BlacklistResource, '/blacklists')
     api.add_resource(BlacklistQueryResource, '/blacklists/<string:email>')
 
-    with app.app_context():
-        db.create_all()
+
 
     return app
