@@ -1,0 +1,151 @@
+{
+  "info": {
+    "_postman_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+    "name": "Blacklist Service (MISW-4304)",
+    "description": "API Flask en Elastic Beanstalk.\n\n1. Edita variables de colección: **baseUrl**, **serviceUsername**, **servicePassword**.\n2. Ejecuta **Auth / Login** (guarda **accessToken** automáticamente).\n3. Usa **Blacklists** con el token.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://blacklist-svc-dev-env.eba-vzff2usv.us-east-1.elasticbeanstalk.com"
+    },
+    {
+      "key": "serviceUsername",
+      "value": "admin"
+    },
+    {
+      "key": "servicePassword",
+      "value": ""
+    },
+    {
+      "key": "accessToken",
+      "value": ""
+    },
+    {
+      "key": "sampleEmail",
+      "value": "prueba@example.com"
+    },
+    {
+      "key": "sampleAppUuid",
+      "value": "550e8400-e29b-41d4-a716-446655440000"
+    }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "GET /health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/health",
+            "description": "Comprueba que el servicio responde (sin autenticación)."
+          }
+        },
+        {
+          "name": "GET /",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/",
+            "description": "Ping raíz (sin autenticación)."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Login (POST /auth/token)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var json = pm.response.json();",
+                  "if (pm.response.code === 200 && json.access_token) {",
+                  "    pm.collectionVariables.set('accessToken', json.access_token);",
+                  "    console.log('accessToken guardado en variables de colección');",
+                  "} else {",
+                  "    console.log('No se recibió access_token');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{serviceUsername}}\",\n  \"password\": \"{{servicePassword}}\"\n}"
+            },
+            "url": "{{baseUrl}}/auth/token",
+            "description": "Obtiene JWT. Tras 200 OK, el token queda en la variable **accessToken**."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Blacklists",
+      "item": [
+        {
+          "name": "POST /blacklists (agregar)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{sampleEmail}}\",\n  \"app_uuid\": \"{{sampleAppUuid}}\",\n  \"blocked_reason\": \"prueba desde Postman\"\n}"
+            },
+            "url": "{{baseUrl}}/blacklists",
+            "description": "Requiere ejecutar **Auth / Login** antes. 201 creado, 409 si el email ya existe."
+          }
+        },
+        {
+          "name": "GET /blacklists/:email (consultar)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/blacklists/prueba%40example.com",
+            "description": "Consulta si el email está en blacklist. Ejemplo con prueba@example.com URL-encoded (%40). Cambia el path si usas otro correo."
+          }
+        }
+      ]
+    }
+  ]
+}

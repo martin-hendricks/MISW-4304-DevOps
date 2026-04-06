@@ -74,3 +74,29 @@ Variables del init script:
 	 - `DB_INIT_MAX_RETRIES` (opcional)
 	 - `DB_INIT_RETRY_DELAY_SECONDS` (opcional)
 4. Verificar conectividad de red hacia PostgreSQL (security groups, VPC, puerto 5432).
+
+Para volver a desplegar el codigo (zip a S3, nueva version, actualizar entorno) sin instalar la CLI `eb`:
+
+```bash
+./scripts/deploy_eb.sh
+```
+
+Variables opcionales: `EB_APPLICATION_NAME`, `EB_ENVIRONMENT_NAME`, `AWS_REGION`, `EB_S3_PREFIX`, `EB_VERSION_LABEL`.
+
+**Postman:** importa `postman/Blacklist-Service.postman_collection.json` (File → Import). Configura en la colección las variables `baseUrl`, `servicePassword` (y `serviceUsername` si no es `admin`), ejecuta **Auth / Login** y luego los endpoints de **Blacklists**.
+
+## Infraestructura (Terraform)
+
+Codigo en `terraform/`: VPC (subredes publicas/privadas, NAT), grupos de seguridad, **RDS PostgreSQL** y **Elastic Beanstalk** (Docker, ALB). Entorno de ejemplo: `terraform/environments/dev`.
+
+```bash
+cd terraform/environments/dev
+cp terraform.tfvars.example terraform.tfvars
+# Editar terraform.tfvars con secretos reales
+
+terraform init
+terraform plan
+terraform apply
+```
+
+Opcional: renombrar `backend.tf.example` a `backend.tf` y configurar bucket S3 + DynamoDB para estado remoto. Tras el `apply`, desplegar la aplicacion con EB/CI (`eb deploy` o version de aplicacion); el entorno queda listo en red y variables (`DATABASE_URL`, JWT, etc.).
