@@ -245,6 +245,24 @@ resource "aws_elastic_beanstalk_environment" "this" {
 
   setting {
     namespace = "aws:elasticbeanstalk:command"
+    name      = "DeploymentPolicy"
+    value     = var.deployment_policy
+  }
+
+  setting {
+    namespace = "aws:elasticbeanstalk:command"
+    name      = "BatchSizeType"
+    value     = var.deployment_batch_size_type
+  }
+
+  setting {
+    namespace = "aws:elasticbeanstalk:command"
+    name      = "BatchSize"
+    value     = var.deployment_batch_size
+  }
+
+  setting {
+    namespace = "aws:elasticbeanstalk:command"
     name      = "Timeout"
     value     = "1800"
   }

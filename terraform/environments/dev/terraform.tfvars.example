@@ -21,3 +21,17 @@ service_password = "replace-with-strong-password"
 
 # Fallback regex for Amazon Linux 2:
 # solution_stack_regex = "^64bit Amazon Linux 2 v[0-9.]+ running Docker$"
+
+# --- Elastic Beanstalk deployment policy (mismo entorno; elige UNA y aplica) ---
+# Default en variables.tf: Rolling + 33% por lote (razonable con min 3 instancias).
+#
+# eb_deployment_policy = "AllAtOnce"
+# eb_deployment_policy = "Rolling"
+# eb_deployment_policy = "RollingWithAdditionalBatch"
+# eb_deployment_policy = "Immutable"
+#
+# Ajuste de lotes (sobre todo Rolling / RollingWithAdditionalBatch):
+# eb_deployment_batch_size_type  = "Percentage"  # o "Fixed"
+# eb_deployment_batch_size       = "33"           # ej. 33 por ciento o 1 instancia si Fixed
+#
+# Tras cambiar: terraform apply -var-file=terraform.tfvars

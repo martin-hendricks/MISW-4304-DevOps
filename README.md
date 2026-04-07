@@ -99,4 +99,6 @@ terraform plan
 terraform apply
 ```
 
+**Politica de despliegue de Elastic Beanstalk** (mismo entorno `blacklist-svc-dev-env`): en `terraform.tfvars` define `eb_deployment_policy` como una de `AllAtOnce`, `Rolling`, `RollingWithAdditionalBatch` o `Immutable`; opcionalmente `eb_deployment_batch_size_type` (`Fixed` / `Percentage`) y `eb_deployment_batch_size`. Luego `terraform apply`. Solo una politica activa a la vez; cambiar la variable y volver a aplicar sustituye la configuracion en AWS.
+
 Opcional: renombrar `backend.tf.example` a `backend.tf` y configurar bucket S3 + DynamoDB para estado remoto. Tras el `apply`, desplegar la aplicacion con EB/CI (`eb deploy` o version de aplicacion); el entorno queda listo en red y variables (`DATABASE_URL`, JWT, etc.).

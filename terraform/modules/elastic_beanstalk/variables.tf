@@ -52,6 +52,24 @@ variable "health_check_path" {
   default = "/health"
 }
 
+variable "deployment_policy" {
+  type        = string
+  description = "Elastic Beanstalk application deployment policy (same env; change via tfvars + apply)."
+  default     = "Rolling"
+}
+
+variable "deployment_batch_size_type" {
+  type        = string
+  description = "BatchSizeType for rolling-style policies (Fixed or Percentage). Ignored effect for AllAtOnce in practice."
+  default     = "Percentage"
+}
+
+variable "deployment_batch_size" {
+  type        = string
+  description = "Batch size string per EB (e.g. 50 for 50%%, or 1 for one instance)."
+  default     = "50"
+}
+
 variable "solution_stack_regex" {
   type        = string
   description = "Regex to pick the newest Docker platform stack in the region."

@@ -69,6 +69,9 @@ module "elastic_beanstalk" {
   instance_type               = var.eb_instance_type
   min_size                    = var.eb_min_size
   max_size                    = var.eb_max_size
+  deployment_policy           = var.eb_deployment_policy
+  deployment_batch_size_type  = var.eb_deployment_batch_size_type
+  deployment_batch_size       = var.eb_deployment_batch_size
   application_port            = 5000
   health_check_path           = "/health"
   solution_stack_name         = var.solution_stack_name

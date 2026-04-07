@@ -115,13 +115,48 @@ variable "eb_instance_type" {
 }
 
 variable "eb_min_size" {
-  type    = number
-  default = 1
+  type        = number
+  description = "Elastic Beanstalk Auto Scaling group minimum capacity."
+  default     = 3
 }
 
 variable "eb_max_size" {
-  type    = number
-  default = 2
+  type        = number
+  description = "Elastic Beanstalk Auto Scaling group maximum capacity."
+  default     = 6
+}
+
+variable "eb_deployment_policy" {
+  type        = string
+  description = "EB deployment policy: AllAtOnce, Rolling, RollingWithAdditionalBatch, or Immutable (same environment; change + apply to switch)."
+  default     = "Rolling"
+
+  validation {
+    condition = contains([
+      "AllAtOnce",
+      "Rolling",
+      "RollingWithAdditionalBatch",
+      "Immutable",
+    ], var.eb_deployment_policy)
+    error_message = "eb_deployment_policy must be AllAtOnce, Rolling, RollingWithAdditionalBatch, or Immutable."
+  }
+}
+
+variable "eb_deployment_batch_size_type" {
+  type        = string
+  description = "BatchSizeType for EB command namespace (Fixed or Percentage)."
+  default     = "Percentage"
+
+  validation {
+    condition     = contains(["Fixed", "Percentage"], var.eb_deployment_batch_size_type)
+    error_message = "eb_deployment_batch_size_type must be Fixed or Percentage."
+  }
+}
+
+variable "eb_deployment_batch_size" {
+  type        = string
+  description = "Batch size as string (e.g. 33 for 33%%, 1 for one instance at a time)."
+  default     = "33"
 }
 
 variable "solution_stack_name" {
