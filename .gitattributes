@@ -1,0 +1,3 @@
+# Avoid "exec /app/entrypoint.sh: no such file or directory" in Linux/Docker (shebang becomes /bin/sh\r).
+*.sh text eol=lf
+entrypoint.sh text eol=lf

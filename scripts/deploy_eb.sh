@@ -22,8 +22,10 @@ S3_PREFIX="${EB_S3_PREFIX:-blacklist-svc-dev}"
 export AWS_DEFAULT_REGION="$REGION"
 
 VERSION_LABEL="${EB_VERSION_LABEL:-app-$(date -u +%Y%m%d-%H%M%S)}"
+# mktemp creates an empty file; zip -r would try to update it and fails with "Zip file structure invalid".
 ZIP="$(mktemp "/tmp/eb-blacklist-${VERSION_LABEL}.XXXXXX.zip")"
 trap 'rm -f "$ZIP"' EXIT
+rm -f "$ZIP"
 
 echo "==> Building zip from ${ROOT}"
 zip -qr "$ZIP" \
