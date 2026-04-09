@@ -74,3 +74,48 @@ Variables del init script:
 	 - `DB_INIT_MAX_RETRIES` (opcional)
 	 - `DB_INIT_RETRY_DELAY_SECONDS` (opcional)
 4. Verificar conectividad de red hacia PostgreSQL (security groups, VPC, puerto 5432).
+
+Para volver a desplegar el codigo (zip a S3, nueva version, actualizar entorno) sin instalar la CLI `eb`:
+
+```bash
+./scripts/deploy_eb.sh
+```
+
+Variables opcionales: `EB_APPLICATION_NAME`, `EB_ENVIRONMENT_NAME`, `AWS_REGION`, `EB_S3_PREFIX`, `EB_VERSION_LABEL`.
+
+## Postman
+
+Importa `postman/Blacklist-Service.postman_collection.json` (File → Import). La colección se llama **Blacklist Service API**; la **Introducción** (vista Documentación) resume enlaces rápidos, autenticación y códigos HTTP al estilo de la documentación publicada de Postman.
+
+**Variables de colección (mínimo):** `baseUrl`, `servicePassword` y, si aplica, `serviceUsername` (por defecto `admin`). `accessToken` se rellena al ejecutar **Authentication API → Obtener token JWT**. El flujo automático usa además `dynamicEmail`, `lastBlacklistedEmail` y `encodedConsultEmail` (scripts). Para pruebas manuales puedes ajustar `sampleEmail` y `sampleAppUuid`.
+
+**Estructura (carpetas tipo “X API”)**
+
+- **Health API** — disponibilidad pública (`GET /health`, `GET /`), cabecera `Accept` explícita para la tabla Headers en docs.
+- **Authentication API** — `POST /auth/token`: token válido (guarda JWT), credenciales inválidas (401) y cuerpo vacío (400).
+- **Blacklists API**
+	- **Escenarios: flujo feliz** (orden recomendado): agregar email único (201) → consultar ese email (200) → duplicado (409) → email no listado (200).
+	- **Escenarios: validaciones**: sin Bearer (401), cuerpo no JSON (400), email/`app_uuid` inválidos en POST, path inválido en GET.
+	- Requests **manuales** (`sampleEmail` / URL fija).
+
+**Collection Runner:** primero **Authentication API → Obtener token JWT**, luego **Blacklists API → Escenarios: flujo feliz** (y opcionalmente **Escenarios: validaciones**). Cada request tiene descripción en Markdown y **Tests** con `pm.test`.
+
+**Documentación publicada:** en Postman, al publicar la colección puedes usar el layout **Double Column**; los endpoints con Bearer muestran candado y las tablas de headers salen de las cabeceras definidas en cada request.
+
+## Infraestructura (Terraform)
+
+Codigo en `terraform/`: VPC (subredes publicas/privadas, NAT), grupos de seguridad, **RDS PostgreSQL** y **Elastic Beanstalk** (Docker, ALB). Entorno de ejemplo: `terraform/environments/dev`.
+
+```bash
+cd terraform/environments/dev
+cp terraform.tfvars.example terraform.tfvars
+# Editar terraform.tfvars con secretos reales
+
+terraform init
+terraform plan
+terraform apply
+```
+
+**Politica de despliegue de Elastic Beanstalk** (mismo entorno `blacklist-svc-dev-env`): en `terraform.tfvars` define `eb_deployment_policy` como una de `AllAtOnce`, `Rolling`, `RollingWithAdditionalBatch` o `Immutable`; opcionalmente `eb_deployment_batch_size_type` (`Fixed` / `Percentage`) y `eb_deployment_batch_size`. Luego `terraform apply`. Solo una politica activa a la vez; cambiar la variable y volver a aplicar sustituye la configuracion en AWS.
+
+Opcional: renombrar `backend.tf.example` a `backend.tf` y configurar bucket S3 + DynamoDB para estado remoto. Tras el `apply`, desplegar la aplicacion con EB/CI (`eb deploy` o version de aplicacion); el entorno queda listo en red y variables (`DATABASE_URL`, JWT, etc.).
