@@ -83,7 +83,24 @@ Para volver a desplegar el codigo (zip a S3, nueva version, actualizar entorno) 
 
 Variables opcionales: `EB_APPLICATION_NAME`, `EB_ENVIRONMENT_NAME`, `AWS_REGION`, `EB_S3_PREFIX`, `EB_VERSION_LABEL`.
 
-**Postman:** importa `postman/Blacklist-Service.postman_collection.json` (File → Import). Configura en la colección las variables `baseUrl`, `servicePassword` (y `serviceUsername` si no es `admin`), ejecuta **Auth / Login** y luego los endpoints de **Blacklists**.
+## Postman
+
+Importa `postman/Blacklist-Service.postman_collection.json` (File → Import). La colección se llama **Blacklist Service API**; la **Introducción** (vista Documentación) resume enlaces rápidos, autenticación y códigos HTTP al estilo de la documentación publicada de Postman.
+
+**Variables de colección (mínimo):** `baseUrl`, `servicePassword` y, si aplica, `serviceUsername` (por defecto `admin`). `accessToken` se rellena al ejecutar **Authentication API → Obtener token JWT**. El flujo automático usa además `dynamicEmail`, `lastBlacklistedEmail` y `encodedConsultEmail` (scripts). Para pruebas manuales puedes ajustar `sampleEmail` y `sampleAppUuid`.
+
+**Estructura (carpetas tipo “X API”)**
+
+- **Health API** — disponibilidad pública (`GET /health`, `GET /`), cabecera `Accept` explícita para la tabla Headers en docs.
+- **Authentication API** — `POST /auth/token`: token válido (guarda JWT), credenciales inválidas (401) y cuerpo vacío (400).
+- **Blacklists API**
+	- **Escenarios: flujo feliz** (orden recomendado): agregar email único (201) → consultar ese email (200) → duplicado (409) → email no listado (200).
+	- **Escenarios: validaciones**: sin Bearer (401), cuerpo no JSON (400), email/`app_uuid` inválidos en POST, path inválido en GET.
+	- Requests **manuales** (`sampleEmail` / URL fija).
+
+**Collection Runner:** primero **Authentication API → Obtener token JWT**, luego **Blacklists API → Escenarios: flujo feliz** (y opcionalmente **Escenarios: validaciones**). Cada request tiene descripción en Markdown y **Tests** con `pm.test`.
+
+**Documentación publicada:** en Postman, al publicar la colección puedes usar el layout **Double Column**; los endpoints con Bearer muestran candado y las tablas de headers salen de las cabeceras definidas en cada request.
 
 ## Infraestructura (Terraform)
 

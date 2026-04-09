@@ -13,6 +13,9 @@ jwt = JWTManager()
 def create_app():
     app = Flask(__name__)
     app.config.from_object('app.config.Config')
+    # Flask-RESTful intercepta excepciones antes que los @jwt.*_loader de
+    # Flask-JWT-Extended, devolviendo 500 en lugar de 401 sin token / token inválido.
+    app.config['PROPAGATE_EXCEPTIONS'] = True
 
     db.init_app(app)
     ma.init_app(app)

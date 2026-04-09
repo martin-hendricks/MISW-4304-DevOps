@@ -1,8 +1,8 @@
 {
   "info": {
     "_postman_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
-    "name": "Blacklist Service (MISW-4304)",
-    "description": "API Flask en Elastic Beanstalk.\n\n1. Edita variables de colección: **baseUrl**, **serviceUsername**, **servicePassword**.\n2. Ejecuta **Auth / Login** (guarda **accessToken** automáticamente).\n3. Usa **Blacklists** con el token.",
+    "name": "Blacklist Service API",
+    "description": "# Blacklist Service API\n\nAPI REST para registrar y consultar direcciones de correo en una lista de bloqueo. Backend **Flask**, autenticación **JWT** en rutas protegidas y despliegue típico en **AWS Elastic Beanstalk**.\n\n## Enlaces rápidos\n\n- [Primeros pasos](#primeros-pasos)\n- [Autenticación](#autenticación)\n- [Variables de colección](#variables-de-colección)\n- [Códigos HTTP](#códigos-http)\n- [Documentación publicada](#documentación-publicada)\n\n## Primeros pasos\n\n1. Importa esta colección y define **baseUrl**, **serviceUsername** y **servicePassword**.\n2. Ejecuta **Authentication API → Obtener token JWT**; el **accessToken** se guarda solo en variables de colección.\n3. Usa **Blacklists API** con el token (candado en la documentación indica **Bearer JWT**).\n4. Para pruebas encadenadas, abre **Collection Runner**: primero login, luego **Escenarios: flujo feliz** y, si quieres, **Escenarios: validaciones**.\n\n## Autenticación\n\n- **Público:** `GET /health`, `GET /`.\n- **JWT:** envía `Authorization: Bearer <access_token>` en **Blacklists** (excepto el escenario explícito *sin token*).\n- El token se obtiene con `POST /auth/token` y credenciales de servicio (`SERVICE_USERNAME` / `SERVICE_PASSWORD` en el servidor).\n\n## Variables de colección\n\n| Variable | Uso |\n|----------|-----|\n| `baseUrl` | Origen del API (local, EB, etc.) |\n| `serviceUsername`, `servicePassword` | Login en `/auth/token` |\n| `accessToken` | Rellenada por el script de login |\n| `sampleEmail`, `sampleAppUuid` | Requests manuales |\n| `dynamicEmail`, `lastBlacklistedEmail`, `encodedConsultEmail` | Escenarios automáticos (scripts) |\n\n## Códigos HTTP\n\n| Código | Uso |\n|--------|-----|\n| 400 | JSON inválido, validación de email/UUID, campos obligatorios |\n| 401 | Credenciales incorrectas o JWT ausente/inválido/expirado |\n| 201 | Email agregado a la blacklist |\n| 409 | Email ya existente |\n| 200 | Consultas y health checks correctos |\n\n## Documentación publicada\n\nAl **publicar** la documentación desde Postman, puedes elegir el layout **Double Column** (descripción a la izquierda, detalle del request a la derecha). Las tablas **Headers** se generan a partir de las cabeceras definidas en cada request; los endpoints protegidos muestran el icono de seguridad por usar **Bearer Token**.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -29,43 +29,115 @@
     {
       "key": "sampleAppUuid",
       "value": "550e8400-e29b-41d4-a716-446655440000"
+    },
+    {
+      "key": "lastBlacklistedEmail",
+      "value": ""
+    },
+    {
+      "key": "dynamicEmail",
+      "value": ""
+    },
+    {
+      "key": "encodedConsultEmail",
+      "value": ""
     }
   ],
   "item": [
     {
-      "name": "Health",
+      "name": "Health API",
+      "description": "## Health API\n\nComprobaciones ligeras de disponibilidad **sin autenticación**. Útiles detrás de un balanceador o en monitoreo.\n\nEn la vista **Documentation**, cada método aparece con su etiqueta de color (GET en verde). No se envía cabecera `Authorization`.",
       "item": [
         {
-          "name": "GET /health",
+          "name": "Comprobar disponibilidad del servicio",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Content-Type JSON', function () {",
+                  "    pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json');",
+                  "});",
+                  "pm.test('Cuerpo: status ok y message pong', function () {",
+                  "    var j = pm.response.json();",
+                  "    pm.expect(j).to.have.property('status', 'ok');",
+                  "    pm.expect(j).to.have.property('message', 'pong');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
           "request": {
             "method": "GET",
-            "header": [],
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
             "url": "{{baseUrl}}/health",
-            "description": "Comprueba que el servicio responde (sin autenticación)."
+            "description": "Health check dedicado; equivale en comportamiento al ping en `/`.\n\n**Método y ruta:** `GET` `/health`\n\n**Autenticación:** ninguna (público).\n\n**Headers** (también listados arriba en la documentación):\n\n| Header | Valor |\n|--------|-------|\n| Accept | application/json |\n\n**Respuesta 200**\n\n```json\n{\n  \"status\": \"ok\",\n  \"message\": \"pong\"\n}\n```"
           }
         },
         {
-          "name": "GET /",
+          "name": "Ping en la raíz del servicio",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Payload acorde al health check', function () {",
+                  "    var j = pm.response.json();",
+                  "    pm.expect(j.status).to.eql('ok');",
+                  "    pm.expect(j.message).to.eql('pong');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
           "request": {
             "method": "GET",
-            "header": [],
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
             "url": "{{baseUrl}}/",
-            "description": "Ping raíz (sin autenticación)."
+            "description": "Misma respuesta que `/health` en esta aplicación.\n\n**Método y ruta:** `GET` `/`\n\n**Autenticación:** ninguna (público).\n\n**Headers**\n\n| Header | Valor |\n|--------|-------|\n| Accept | application/json |\n\n**Respuesta 200:** objeto con `status` y `message` (igual que *Comprobar disponibilidad del servicio*)."
           }
         }
       ]
     },
     {
-      "name": "Auth",
+      "name": "Authentication API",
+      "description": "## Authentication API\n\nEmisión de **JSON Web Token (JWT)** con credenciales de servicio configuradas en el servidor (`SERVICE_USERNAME`, `SERVICE_PASSWORD`).\n\nLos requests usan **POST** y cuerpo **JSON**; la cabecera **Content-Type: application/json** aparece en la tabla de headers de la documentación.",
       "item": [
         {
-          "name": "Login (POST /auth/token)",
+          "name": "Obtener token JWT",
           "event": [
             {
               "listen": "test",
               "script": {
                 "exec": [
                   "var json = pm.response.json();",
+                  "pm.test('Status 200 en login correcto', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Incluye access_token no vacío', function () {",
+                  "    pm.expect(json).to.have.property('access_token');",
+                  "    pm.expect(json.access_token).to.be.a('string').and.not.empty;",
+                  "});",
                   "if (pm.response.code === 200 && json.access_token) {",
                   "    pm.collectionVariables.set('accessToken', json.access_token);",
                   "    console.log('accessToken guardado en variables de colección');",
@@ -90,16 +162,584 @@
               "raw": "{\n  \"username\": \"{{serviceUsername}}\",\n  \"password\": \"{{servicePassword}}\"\n}"
             },
             "url": "{{baseUrl}}/auth/token",
-            "description": "Obtiene JWT. Tras 200 OK, el token queda en la variable **accessToken**."
+            "description": "Autentica al cliente de servicio y devuelve un JWT para usar en **Blacklists API**.\n\n**Método y ruta:** `POST` `/auth/token`\n\n**Autenticación:** ninguna (este endpoint entrega el token).\n\n**Headers**\n\n| Header | Valor |\n|--------|-------|\n| Content-Type | application/json |\n\n**Cuerpo (JSON)**\n\n| Campo | Tipo | Requerido |\n|-------|------|------------|\n| username | string | Sí |\n| password | string | Sí |\n\n**Respuestas**\n\n| Código | Cuerpo (ejemplo) |\n|--------|------------------|\n| 200 | `{ \"access_token\": \"<jwt>\" }` — el script guarda el valor en la variable **accessToken** |\n| 400 | Falta JSON válido o campos obligatorios |\n| 401 | `{ \"message\": \"Invalid credentials\" }` |"
+          }
+        },
+        {
+          "name": "Login con credenciales inválidas",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 401', function () {",
+                  "    pm.response.to.have.status(401);",
+                  "});",
+                  "pm.test('Mensaje de credenciales inválidas', function () {",
+                  "    var j = pm.response.json();",
+                  "    pm.expect(j.message).to.eql('Invalid credentials');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{serviceUsername}}\",\n  \"password\": \"__definitely_wrong_password__\"\n}"
+            },
+            "url": "{{baseUrl}}/auth/token",
+            "description": "Escenario de prueba: contraseña deliberadamente incorrecta (usuario sigue siendo **serviceUsername**).\n\n**Método y ruta:** `POST` `/auth/token`\n\n**Headers:** `Content-Type: application/json`\n\n**Respuesta esperada:** **401** — `{ \"message\": \"Invalid credentials\" }`.\n\nNo modifica **accessToken**. Para un token válido, ejecuta **Obtener token JWT**."
+          }
+        },
+        {
+          "name": "Login con cuerpo vacío",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 400', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});",
+                  "pm.test('Indica JSON inválido o requisitos', function () {",
+                  "    var j = pm.response.json();",
+                  "    pm.expect(j).to.have.property('message');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": ""
+            },
+            "url": "{{baseUrl}}/auth/token",
+            "description": "Escenario de validación: cuerpo vacío; el servidor no recibe JSON parseable.\n\n**Método y ruta:** `POST` `/auth/token`\n\n**Headers:** `Content-Type: application/json`\n\n**Respuesta esperada:** **400** con `message` descriptiva (p. ej. cuerpo JSON inválido)."
           }
         }
       ]
     },
     {
-      "name": "Blacklists",
+      "name": "Blacklists API",
+      "description": "## Blacklists API\n\nAlta y consulta de correos en lista negra. La mayoría de operaciones requieren **Bearer Token** (JWT); en la documentación publicada verás el **candado** en esos requests.\n\nSubcarpetas:\n\n- **Escenarios: flujo feliz** — secuencia recomendada para demos y Runner.\n- **Escenarios: validaciones** — errores 400/401 esperados.\n- Requests **manuales** con variables `sampleEmail` / URL fija.",
       "item": [
         {
-          "name": "POST /blacklists (agregar)",
+          "name": "Escenarios: flujo feliz",
+          "description": "## Escenarios: flujo feliz\n\nEjecutar **en orden** con **Collection Runner** después de **Authentication API → Obtener token JWT**:\n\n1. Agregar email único (201)\n2. Consultar ese email (200, listado)\n3. Reintento duplicado (409)\n4. Consulta de email inexistente (200, no listado)",
+          "item": [
+            {
+              "name": "Agregar email a la blacklist",
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "exec": [
+                      "var ts = Date.now();",
+                      "var email = 'blacklist-e2e-' + ts + '@example.com';",
+                      "pm.collectionVariables.set('dynamicEmail', email);"
+                    ],
+                    "type": "text/javascript"
+                  }
+                },
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status 201 creado', function () {",
+                      "    pm.response.to.have.status(201);",
+                      "});",
+                      "var j = pm.response.json();",
+                      "pm.test('Mensaje confirma email agregado', function () {",
+                      "    pm.expect(j.message).to.include('successfully added to the blacklist');",
+                      "});",
+                      "var used = pm.collectionVariables.get('dynamicEmail');",
+                      "pm.test('Mensaje incluye el email usado', function () {",
+                      "    pm.expect(j.message).to.include(used);",
+                      "});",
+                      "pm.collectionVariables.set('lastBlacklistedEmail', used);"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{accessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"email\": \"{{dynamicEmail}}\",\n  \"app_uuid\": \"{{sampleAppUuid}}\",\n  \"blocked_reason\": \"Escenario Postman — flujo feliz\"\n}"
+                },
+                "url": "{{baseUrl}}/blacklists",
+                "description": "Registra un correo en la blacklist.\n\n**Método y ruta:** `POST` `/blacklists`\n\n**Autenticación:** Bearer JWT (token en pestaña *Authorization*; en docs aparece como endpoint protegido).\n\n**Headers**\n\n| Header | Valor |\n|--------|-------|\n| Content-Type | application/json |\n\n**Pre-request:** genera **dynamicEmail** único (`blacklist-e2e-<timestamp>@example.com`) para evitar 409 al repetir la colección.\n\n**Cuerpo (JSON)**\n\n| Campo | Tipo | Requerido | Notas |\n|-------|------|-----------|--------|\n| email | string | Sí | Formato válido |\n| app_uuid | string | Sí | UUID |\n| blocked_reason | string | No | Máx. 255 caracteres |\n\n**Respuestas:** **201** creado (el test guarda el email en **lastBlacklistedEmail**); **409** duplicado; **400** / **401** validación o token."
+              }
+            },
+            {
+              "name": "Consultar email recién agregado",
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "exec": [
+                      "var e = pm.collectionVariables.get('lastBlacklistedEmail');",
+                      "if (!e) { console.warn('lastBlacklistedEmail vacío: ejecuta antes POST crear entrada'); }",
+                      "pm.collectionVariables.set('encodedConsultEmail', encodeURIComponent(e || ''));"
+                    ],
+                    "type": "text/javascript"
+                  }
+                },
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "var j = pm.response.json();",
+                      "pm.test('Está en blacklist', function () {",
+                      "    pm.expect(j.is_blacklisted).to.eql(true);",
+                      "});",
+                      "pm.test('Incluye blocked_reason', function () {",
+                      "    pm.expect(j).to.have.property('blocked_reason');",
+                      "    pm.expect(j.blocked_reason).to.include('Postman');",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{accessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "url": "{{baseUrl}}/blacklists/{{encodedConsultEmail}}",
+                "description": "Comprueba si el correo guardado en **lastBlacklistedEmail** está bloqueado.\n\n**Método y ruta:** `GET` `/blacklists/{email}`\n\n**Autenticación:** Bearer JWT.\n\n**Headers**\n\n| Header | Valor |\n|--------|-------|\n| Accept | application/json |\n\n**Parámetro de ruta:** `email` URL-encoded (el pre-request aplica `encodeURIComponent` sobre **lastBlacklistedEmail**).\n\n**Respuesta 200 (listado)**\n\n```json\n{\n  \"is_blacklisted\": true,\n  \"blocked_reason\": \"...\"\n}\n```\n\nSi no está en lista: `is_blacklisted: false`, `blocked_reason: null`.\n\n**Dependencia:** ejecutar después de **Agregar email a la blacklist**."
+              }
+            },
+            {
+              "name": "Reintentar alta del mismo email (conflicto)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status 409 conflicto', function () {",
+                      "    pm.response.to.have.status(409);",
+                      "});",
+                      "var j = pm.response.json();",
+                      "pm.test('Mensaje indica email ya en blacklist', function () {",
+                      "    pm.expect(j.message).to.include('already in the blacklist');",
+                      "});",
+                      "var email = pm.collectionVariables.get('lastBlacklistedEmail');",
+                      "if (email) {",
+                      "    pm.test('Mensaje menciona el email', function () {",
+                      "        pm.expect(j.message).to.include(email);",
+                      "    });",
+                      "}"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{accessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"email\": \"{{lastBlacklistedEmail}}\",\n  \"app_uuid\": \"{{sampleAppUuid}}\",\n  \"blocked_reason\": \"intento duplicado\"\n}"
+                },
+                "url": "{{baseUrl}}/blacklists",
+                "description": "Intenta registrar de nuevo **lastBlacklistedEmail** con el mismo **app_uuid**.\n\n**Método y ruta:** `POST` `/blacklists`\n\n**Autenticación:** Bearer JWT.\n\n**Headers:** `Content-Type: application/json`\n\n**Respuesta esperada:** **409** — `{ \"message\": \"Email ... is already in the blacklist\" }`.\n\n**Dependencia:** **Agregar email a la blacklist** en la misma sesión."
+              }
+            },
+            {
+              "name": "Consultar email que no está en la lista",
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "exec": [
+                      "pm.collectionVariables.set('encodedConsultEmail', encodeURIComponent('surely-not-blacklisted-' + Date.now() + '@example.com'));"
+                    ],
+                    "type": "text/javascript"
+                  }
+                },
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "var j = pm.response.json();",
+                      "pm.test('No está en blacklist', function () {",
+                      "    pm.expect(j.is_blacklisted).to.eql(false);",
+                      "});",
+                      "pm.test('blocked_reason null', function () {",
+                      "    pm.expect(j.blocked_reason).to.eql(null);",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{accessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "url": "{{baseUrl}}/blacklists/{{encodedConsultEmail}}",
+                "description": "El pre-request usa un correo aleatorio poco probable en la base de datos.\n\n**Método y ruta:** `GET` `/blacklists/{email}`\n\n**Autenticación:** Bearer JWT.\n\n**Headers:** `Accept: application/json`\n\n**Respuesta esperada:** **200** con `is_blacklisted: false` y `blocked_reason: null`."
+              }
+            }
+          ]
+        },
+        {
+          "name": "Escenarios: validaciones",
+          "description": "## Escenarios: validaciones\n\nCasos que esperan **400** u **401**. Ejecuta **Obtener token JWT** antes, salvo el request **sin Bearer** (solo ese no necesita token previo).",
+          "item": [
+            {
+              "name": "Crear blacklist sin enviar token",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status 401', function () {",
+                      "    pm.response.to.have.status(401);",
+                      "});",
+                      "pm.test('Mensaje token faltante', function () {",
+                      "    var j = pm.response.json();",
+                      "    pm.expect(j.message).to.match(/missing|Missing|token/i);",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"email\": \"any@example.com\",\n  \"app_uuid\": \"{{sampleAppUuid}}\"\n}"
+                },
+                "url": "{{baseUrl}}/blacklists",
+                "description": "Comprueba el rechazo cuando no se envía JWT.\n\n**Método y ruta:** `POST` `/blacklists`\n\n**Autenticación:** ninguna (tipo *No Auth* en Postman).\n\n**Headers:** `Content-Type: application/json`\n\n**Respuesta esperada:** **401** — mensaje tipo *Authorization token is missing*."
+              }
+            },
+            {
+              "name": "Crear blacklist con cuerpo que no es JSON",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status 400', function () {",
+                      "    pm.response.to.have.status(400);",
+                      "});",
+                      "pm.test('Mensaje JSON inválido', function () {",
+                      "    var j = pm.response.json();",
+                      "    pm.expect(j.message).to.include('valid JSON');",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{accessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "text/plain"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "esto no es json"
+                },
+                "url": "{{baseUrl}}/blacklists",
+                "description": "Cuerpo de texto plano; el servidor exige JSON.\n\n**Método y ruta:** `POST` `/blacklists`\n\n**Autenticación:** Bearer JWT.\n\n**Headers:** `Content-Type: text/plain`\n\n**Respuesta esperada:** **400** — `Request body must be valid JSON`."
+              }
+            },
+            {
+              "name": "Crear blacklist con email inválido",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status 400', function () {",
+                      "    pm.response.to.have.status(400);",
+                      "});",
+                      "pm.test('Mensaje formato email', function () {",
+                      "    var j = pm.response.json();",
+                      "    pm.expect(j.message).to.include('email format is invalid');",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{accessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"email\": \"no-es-un-correo\",\n  \"app_uuid\": \"{{sampleAppUuid}}\"\n}"
+                },
+                "url": "{{baseUrl}}/blacklists",
+                "description": "El campo `email` no cumple el formato esperado por el API.\n\n**Método y ruta:** `POST` `/blacklists`\n\n**Autenticación:** Bearer JWT.\n\n**Headers:** `Content-Type: application/json`\n\n**Respuesta esperada:** **400** — `email format is invalid`."
+              }
+            },
+            {
+              "name": "Crear blacklist con app_uuid inválido",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status 400', function () {",
+                      "    pm.response.to.have.status(400);",
+                      "});",
+                      "pm.test('Mensaje UUID', function () {",
+                      "    var j = pm.response.json();",
+                      "    pm.expect(j.message).to.include('valid UUID');",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{accessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"email\": \"valid-format-{{$timestamp}}@example.com\",\n  \"app_uuid\": \"not-a-uuid-at-all\"\n}"
+                },
+                "url": "{{baseUrl}}/blacklists",
+                "description": "`app_uuid` no es un UUID válido.\n\n**Método y ruta:** `POST` `/blacklists`\n\n**Autenticación:** Bearer JWT.\n\n**Headers:** `Content-Type: application/json`\n\n**Respuesta esperada:** **400** — `app_uuid must be a valid UUID`.\n\nEl `email` del cuerpo usa `{{$timestamp}}` para limitar colisiones entre ejecuciones."
+              }
+            },
+            {
+              "name": "Consultar blacklist con email inválido en la URL",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status 400', function () {",
+                      "    pm.response.to.have.status(400);",
+                      "});",
+                      "pm.test('Mensaje formato email', function () {",
+                      "    var j = pm.response.json();",
+                      "    pm.expect(j.message).to.include('email format is invalid');",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{accessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "url": "{{baseUrl}}/blacklists/not-an-email",
+                "description": "El segmento de ruta no es un correo válido.\n\n**Método y ruta:** `GET` `/blacklists/not-an-email`\n\n**Autenticación:** Bearer JWT.\n\n**Headers:** `Accept: application/json`\n\n**Respuesta esperada:** **400** — `email format is invalid`."
+              }
+            }
+          ]
+        },
+        {
+          "name": "Agregar email (manual, variables sample)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "// Si sampleEmail / sampleAppUuid están vacías o sin definir, Postman puede enviar",
+                  "// literales inválidos y el API responde 400 (email/UUID inválidos).",
+                  "var defEmail = 'prueba@example.com';",
+                  "var defUuid = '550e8400-e29b-41d4-a716-446655440000';",
+                  "function norm(v) { return v === undefined || v === null ? '' : String(v).trim(); }",
+                  "var e = norm(pm.collectionVariables.get('sampleEmail'));",
+                  "var u = norm(pm.collectionVariables.get('sampleAppUuid'));",
+                  "if (!e) { pm.collectionVariables.set('sampleEmail', defEmail); }",
+                  "if (!u) { pm.collectionVariables.set('sampleAppUuid', defUuid); }"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var code = pm.response.code;",
+                  "var j = pm.response.json();",
+                  "pm.test('201 creado o 409 ya existía', function () {",
+                  "    if (![201, 409].includes(code)) {",
+                  "        throw new Error('Esperado 201 o 409; recibido ' + code + '. ' + JSON.stringify(j) +",
+                  "            ' — Revisa sampleEmail (correo válido) y sampleAppUuid (UUID).');",
+                  "    }",
+                  "});",
+                  "pm.test('Cuerpo incluye message', function () {",
+                  "    pm.expect(j).to.have.property('message');",
+                  "});",
+                  "if (code === 201) {",
+                  "    pm.test('Mensaje de éxito', function () {",
+                  "        pm.expect(j.message).to.include('successfully added');",
+                  "    });",
+                  "} else if (code === 409) {",
+                  "    pm.test('Mensaje de duplicado', function () {",
+                  "        pm.expect(j.message).to.include('already in the blacklist');",
+                  "    });",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
           "request": {
             "auth": {
               "type": "bearer",
@@ -120,14 +760,32 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"email\": \"{{sampleEmail}}\",\n  \"app_uuid\": \"{{sampleAppUuid}}\",\n  \"blocked_reason\": \"prueba desde Postman\"\n}"
+              "raw": "{\n  \"email\": \"{{sampleEmail}}\",\n  \"app_uuid\": \"{{sampleAppUuid}}\",\n  \"blocked_reason\": \"prueba manual desde Postman\"\n}"
             },
             "url": "{{baseUrl}}/blacklists",
-            "description": "Requiere ejecutar **Auth / Login** antes. 201 creado, 409 si el email ya existe."
+            "description": "Misma operación que **Agregar email a la blacklist**, usando **sampleEmail** y **sampleAppUuid**.\n\n**Método y ruta:** `POST` `/blacklists`\n\n**Autenticación:** Bearer JWT (ejecuta **Obtener token JWT** antes).\n\n**Headers:** `Content-Type: application/json`\n\n**Variables:** si **sampleEmail** o **sampleAppUuid** están vacías, un *pre-request* asigna los mismos valores por defecto que la colección (`prueba@example.com` y UUID de ejemplo). Si las editas, el correo debe cumplir el formato del API y `app_uuid` debe ser un UUID válido; si no, el servidor responde **400**.\n\n**Tests:** **201** (alta nueva) o **409** (email ya en lista). Ver **Escenarios: flujo feliz → Agregar email a la blacklist**."
           }
         },
         {
-          "name": "GET /blacklists/:email (consultar)",
+          "name": "Consultar email (manual, ejemplo fijo)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "var j = pm.response.json();",
+                  "pm.test('Forma de respuesta consulta', function () {",
+                  "    pm.expect(j).to.have.keys('is_blacklisted', 'blocked_reason');",
+                  "    pm.expect(j.is_blacklisted).to.be.a('boolean');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
           "request": {
             "auth": {
               "type": "bearer",
@@ -140,9 +798,15 @@
               ]
             },
             "method": "GET",
-            "header": [],
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
             "url": "{{baseUrl}}/blacklists/prueba%40example.com",
-            "description": "Consulta si el email está en blacklist. Ejemplo con prueba@example.com URL-encoded (%40). Cambia el path si usas otro correo."
+            "description": "Consulta de ejemplo para **prueba@example.com** (`prueba%40example.com` en la ruta).\n\n**Método y ruta:** `GET` `/blacklists/prueba%40example.com`\n\n**Autenticación:** Bearer JWT.\n\n**Headers:** `Accept: application/json`\n\nSi cambias **sampleEmail**, actualiza la ruta y codifica `@` como `%40`.\n\n**Respuesta 200:** `is_blacklisted` (boolean) y `blocked_reason` (string o `null`)."
           }
         }
       ]
