@@ -1,0 +1,15 @@
+.git/
+.gitignore
+terraform/
+*.tfstate
+*.tfstate.*
+.terraform/
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.env
+.elasticbeanstalk/
+!.elasticbeanstalk/*.cfg.yml
+!.elasticbeanstalk/*.global.yml

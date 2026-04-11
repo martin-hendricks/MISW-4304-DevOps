@@ -1,0 +1,11 @@
+# Terraform (lock files under terraform/ should be committed)
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+!terraform/**/*.tfvars.example
+
+# Elastic Beanstalk Files
+.elasticbeanstalk/*
+!.elasticbeanstalk/*.cfg.yml
+!.elasticbeanstalk/*.global.yml
