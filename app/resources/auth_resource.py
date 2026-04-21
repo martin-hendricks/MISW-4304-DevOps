@@ -23,6 +23,7 @@ class AuthResource(Resource):
         # Use timing-safe comparison to prevent timing attacks
         username_match = hmac.compare_digest(username, expected_username)
         password_match = hmac.compare_digest(password, expected_password)
+        # Use timing-safe comparison to prevent timing attacks
 
         if not username_match or not password_match:
             return {'message': 'Invalid credentials'}, 401
