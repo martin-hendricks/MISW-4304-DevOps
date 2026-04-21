@@ -20,6 +20,7 @@ class AuthResource(Resource):
         expected_username = current_app.config.get('SERVICE_USERNAME', '')
         expected_password = current_app.config.get('SERVICE_PASSWORD', '')
 
+        # Use timing-safe comparison to prevent timing attacks
         username_match = hmac.compare_digest(username, expected_username)
         password_match = hmac.compare_digest(password, expected_password)
 
