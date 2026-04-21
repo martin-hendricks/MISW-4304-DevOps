@@ -6,6 +6,7 @@ load_dotenv()
 
 
 class Config:
+    ##Config BD
     SQLALCHEMY_DATABASE_URI = os.environ.get(
         'DATABASE_URL',
         'postgresql://user:password@localhost:5432/blacklist_db'
