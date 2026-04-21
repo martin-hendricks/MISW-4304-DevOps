@@ -1,0 +1,45 @@
+version: 0.2
+
+env:
+	variables:
+		PYTHONUNBUFFERED: "1"
+
+phases:
+	install:
+		runtime-versions:
+			python: 3.14
+		commands:
+			- echo "[install] Python version"
+			- python --version
+			- echo "[install] Upgrading pip and installing dependencies"
+			- python -m pip install --upgrade pip
+			- pip install -r requirements.txt
+
+	pre_build:
+		commands:
+			- echo "[pre_build] Running static syntax checks"
+			- python -m compileall -q app run.py scripts
+
+	build:
+		commands:
+			- echo "[build] Build stage completed"
+
+	post_build:
+		commands:
+			- echo "[post_build] Build finished on $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+
+artifacts:
+	files:
+		- Dockerfile
+		- entrypoint.sh
+		- requirements.txt
+		- run.py
+		- README.md
+		- app/**/*
+		- scripts/**/*
+		- .dockerignore
+		- .ebignore
+
+cache:
+	paths:
+		- /root/.cache/pip/**/*
