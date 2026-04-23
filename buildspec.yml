@@ -19,6 +19,8 @@ phases:
     commands:
       - echo "[pre_build] Running static syntax checks"
       - python -m compileall -q app run.py scripts
+      - echo "[pre_build] Running unit tests"
+      - python -m pytest tests/ --tb=short -q
       - echo Logging in to Amazon ECR...
       - aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com
 
@@ -44,6 +46,7 @@ artifacts:
     - README.md
     - app/**/*
     - scripts/**/*
+    - tests/**/*
     - .dockerignore
     - .ebignore
 

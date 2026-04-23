@@ -10,9 +10,11 @@ ma = Marshmallow()
 jwt = JWTManager()
 
 
-def create_app():
+def create_app(test_config=None):
     app = Flask(__name__)
     app.config.from_object('app.config.Config')
+    if test_config is not None:
+        app.config.from_object(test_config)
     # Flask-RESTful intercepta excepciones antes que los @jwt.*_loader de
     # Flask-JWT-Extended, devolviendo 500 en lugar de 401 sin token / token inválido.
     app.config['PROPAGATE_EXCEPTIONS'] = True
