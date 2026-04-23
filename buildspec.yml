@@ -3,6 +3,9 @@ version: 0.2
 env:
   variables:
     PYTHONUNBUFFERED: "1"
+    AWS_ACCOUNT_ID: "382888552507"
+    IMAGE_REPO_NAME: "devops"
+    IMAGE_TAG: "latest"
 
 phases:
   install:
@@ -11,23 +14,27 @@ phases:
     commands:
       - echo "[install] Python version"
       - python --version
-      - echo "[install] Upgrading pip and installing dependencies"
-      - python -m pip install --upgrade pip
-      - pip install -r requirements.txt
-
-
+  pre_build:
+    commands:
+      - echo "[pre_build] Logging in to Amazon ECR"
+      - aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com
+  build:
+    commands:
+      - echo "[build] Build started on `date`"
+      - echo "[build] Building the Docker image..."
+      - docker build -t $IMAGE_REPO_NAME:$IMAGE_TAG .
+      - docker tag $IMAGE_REPO_NAME:$IMAGE_TAG $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$IMAGE_REPO_NAME:$IMAGE_TAG
+  post_build:
+    commands:
+      - echo "[post_build] Build completed on `date`"
+      - echo "[post_build] Pushing the Docker image..."
+      - docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$IMAGE_REPO_NAME:$IMAGE_TAG
+      - echo "[post_build] Creating imagedefinitions.json"
+      - printf '[{"name":"app","imageUri":"%s"}]' $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$IMAGE_REPO_NAME:$IMAGE_TAG > imagedefinitions.json
 
 artifacts:
   files:
-    - Dockerfile
-    - entrypoint.sh
-    - requirements.txt
-    - run.py
-    - README.md
-    - app/**/*
-    - scripts/**/*
-    - .dockerignore
-    - .ebignore
+    - imagedefinitions.json
 
 cache:
   paths:
