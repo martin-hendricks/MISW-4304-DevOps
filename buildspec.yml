@@ -11,8 +11,18 @@ phases:
     commands:
       - echo "[install] Python version"
       - python --version
+      - echo "[install] Installing dependencies"
+      - pip install -r requirements.txt
   pre_build:
     commands:
+      - echo "[pre_build] Checking for tests folder"
+      - |
+        if [ -d "tests" ]; then
+          echo "[pre_build] Running unit tests"
+          pytest
+        else
+          echo "[pre_build] Skipping tests, tests folder not found"
+        fi
       - echo "[pre_build] Logging in to Amazon ECR"
       - aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com
   build:
