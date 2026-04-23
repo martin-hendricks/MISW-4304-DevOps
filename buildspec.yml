@@ -3,9 +3,6 @@ version: 0.2
 env:
   variables:
     PYTHONUNBUFFERED: "1"
-    #AWS_ACCOUNT_ID: "" se inyecta automáticamente desde CodeBuild
-    IMAGE_REPO_NAME: "devops"
-    IMAGE_TAG: "latest"
 
 phases:
   install:
