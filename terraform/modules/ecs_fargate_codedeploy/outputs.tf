@@ -58,3 +58,18 @@ output "codedeploy_artifact_bucket_id" {
   value       = try(aws_s3_bucket.codedeploy_artifacts[0].id, null)
   description = "Present when create_codedeploy_artifact_bucket is true."
 }
+
+output "ecs_task_execution_role_arn" {
+  value       = aws_iam_role.ecs_task_execution.arn
+  description = "For CodeBuild env (taskdef.template.json) / CodePipeline."
+}
+
+output "ecs_task_role_arn" {
+  value       = aws_iam_role.ecs_task.arn
+  description = "Task IAM role ARN for the container."
+}
+
+output "ecs_cloudwatch_log_group_name" {
+  value       = aws_cloudwatch_log_group.app.name
+  description = "awslogs-group value for task definitions."
+}

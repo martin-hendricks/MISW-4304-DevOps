@@ -58,6 +58,21 @@ output "ecs_codedeploy_artifact_bucket_id" {
   description = "S3 bucket for deployment artifacts when ecs_create_codedeploy_artifact_bucket is true."
 }
 
+output "ecs_task_execution_role_arn" {
+  value       = length(module.ecs_fargate_codedeploy) > 0 ? module.ecs_fargate_codedeploy[0].ecs_task_execution_role_arn : null
+  description = "CodeBuild/CodePipeline: set ECS_EXECUTION_ROLE_ARN."
+}
+
+output "ecs_task_role_arn" {
+  value       = length(module.ecs_fargate_codedeploy) > 0 ? module.ecs_fargate_codedeploy[0].ecs_task_role_arn : null
+  description = "CodeBuild/CodePipeline: set ECS_TASK_ROLE_ARN."
+}
+
+output "ecs_cloudwatch_log_group_name" {
+  value       = length(module.ecs_fargate_codedeploy) > 0 ? module.ecs_fargate_codedeploy[0].ecs_cloudwatch_log_group_name : null
+  description = "CodeBuild/CodePipeline: set ECS_AWSLOGS_GROUP."
+}
+
 output "rds_endpoint" {
   value       = module.rds.endpoint
   description = "RDS hostname (credentials are sensitive; see Terraform state)."

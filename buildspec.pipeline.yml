@@ -1,0 +1,57 @@
+# CodeBuild para CodePipeline → ECS Blue/Green (CodeDeploy).
+# Salida: artifact con appspec.json + taskdef.json (ruta esperada por la acción CodeDeployToECS).
+#
+# Requiere CodeBuild en modo privilegiado (Docker).
+#
+# Variables de entorno en el proyecto CodeBuild (después de terraform output):
+#   ECS_EXECUTION_ROLE_ARN   — ecs_task_execution_role_arn
+#   ECS_TASK_ROLE_ARN        — ecs_task_role_arn
+#   ECS_TASK_FAMILY          — ecs_task_definition_family
+#   ECS_AWSLOGS_GROUP        — ecs_cloudwatch_log_group_name (ej. /ecs/blacklist-svc-dev/app)
+#   IMAGE_REPO_NAME          — ecs_ecr_repository_name
+#   IMAGE_TAG                — etiqueta (ej. $CODEBUILD_RESOLVED_SOURCE_VERSION o fecha)
+#
+# taskdef.json usa <IMAGE1_NAME> como en la guía AWS para que el pipeline pueda sustituir la imagen.
+# Esta plantilla no incluye DATABASE_URL/JWT: la primera revisión debe salir de Terraform o mergear
+# environment/secrets desde SSM antes de producir artifact/taskdef.json (véase comentario en deploy/codepipeline/).
+#
+version: 0.2
+
+env:
+  variables:
+    PYTHONUNBUFFERED: "1"
+
+phases:
+  pre_build:
+    commands:
+      - export AWS_ACCOUNT_ID="${AWS_ACCOUNT_ID:-$(aws sts get-caller-identity --query Account --output text)}"
+      - echo "[pre_build] ECR login"
+      - aws ecr get-login-password --region "${AWS_DEFAULT_REGION}" | docker login --username AWS --password-stdin "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com"
+  build:
+    commands:
+      - export AWS_ACCOUNT_ID="${AWS_ACCOUNT_ID:-$(aws sts get-caller-identity --query Account --output text)}"
+      - export IMAGE_URI="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com/${IMAGE_REPO_NAME}:${IMAGE_TAG}"
+      - echo "[build] Docker build + push ${IMAGE_URI}"
+      - docker build -t "${IMAGE_REPO_NAME}:${IMAGE_TAG}" .
+      - docker tag "${IMAGE_REPO_NAME}:${IMAGE_TAG}" "${IMAGE_URI}"
+      - docker push "${IMAGE_URI}"
+  post_build:
+    commands:
+      - export AWS_ACCOUNT_ID="${AWS_ACCOUNT_ID:-$(aws sts get-caller-identity --query Account --output text)}"
+      - export IMAGE_URI="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com/${IMAGE_REPO_NAME}:${IMAGE_TAG}"
+      - mkdir -p artifact
+      - cp deploy/codepipeline/taskdef.json deploy/codepipeline/taskdef.rendered.json
+      - perl -pi -e 's/\Q@@EXECUTION_ROLE_ARN@@\E/$ENV{"ECS_EXECUTION_ROLE_ARN"}/g' deploy/codepipeline/taskdef.rendered.json
+      - perl -pi -e 's/\Q@@TASK_ROLE_ARN@@\E/$ENV{"ECS_TASK_ROLE_ARN"}/g' deploy/codepipeline/taskdef.rendered.json
+      - perl -pi -e 's/\Q@@TASK_FAMILY@@\E/$ENV{"ECS_TASK_FAMILY"}/g' deploy/codepipeline/taskdef.rendered.json
+      - perl -pi -e 's/\Q@@AWSLOGS_GROUP@@\E/$ENV{"ECS_AWSLOGS_GROUP"}/g' deploy/codepipeline/taskdef.rendered.json
+      - perl -pi -e 's/\Q@@AWS_REGION@@\E/$ENV{"AWS_DEFAULT_REGION"}/g' deploy/codepipeline/taskdef.rendered.json
+      - perl -pi -e 's|<IMAGE1_NAME>|$ENV{"IMAGE_URI"}|g' deploy/codepipeline/taskdef.rendered.json
+      - cp deploy/codepipeline/appspec.json artifact/appspec.json
+      - mv deploy/codepipeline/taskdef.rendered.json artifact/taskdef.json
+
+artifacts:
+  base-directory: artifact
+  files:
+    - appspec.json
+    - taskdef.json
