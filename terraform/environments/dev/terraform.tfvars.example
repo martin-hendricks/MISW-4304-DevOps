@@ -5,6 +5,10 @@ aws_region   = "us-east-1"
 project_name = "blacklist-svc"
 environment  = "dev"
 
+# Deploy path: EB (ZIP) vs ECS Fargate + ALB Blue/Green + CodeDeploy + ECR.
+# Same value must be exported as DEPLOYMENT_PLATFORM for ./scripts/deploy.sh
+deployment_platform = "elastic_beanstalk" # or "ecs_fargate_codedeploy"
+
 jwt_secret_key   = "replace-with-long-random-string"
 service_password = "replace-with-strong-password"
 
@@ -35,3 +39,11 @@ service_password = "replace-with-strong-password"
 # eb_deployment_batch_size       = "33"           # ej. 33 por ciento o 1 instancia si Fixed
 #
 # Tras cambiar: terraform apply -var-file=terraform.tfvars
+
+# --- ECS + CodeDeploy (solo si deployment_platform = "ecs_fargate_codedeploy") ---
+# ecs_desired_count                   = 2
+# ecs_task_cpu                        = 256
+# ecs_task_memory                     = 512
+# ecs_create_codedeploy_artifact_bucket = false
+# Cambiar plataforma destruye/crea el tier de cómpute correspondiente (EB o ECS).
+

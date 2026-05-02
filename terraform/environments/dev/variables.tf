@@ -4,6 +4,20 @@ variable "aws_region" {
   default     = "us-east-1"
 }
 
+variable "deployment_platform" {
+  type        = string
+  description = "elastic_beanstalk: EB + zip deploy (deploy_eb.sh). ecs_fargate_codedeploy: ECS Fargate + ALB Blue/Green + CodeDeploy + ECR."
+  default     = "elastic_beanstalk"
+
+  validation {
+    condition = contains([
+      "elastic_beanstalk",
+      "ecs_fargate_codedeploy",
+    ], var.deployment_platform)
+    error_message = "deployment_platform must be elastic_beanstalk or ecs_fargate_codedeploy."
+  }
+}
+
 variable "project_name" {
   type        = string
   description = "Short prefix for resource names."
@@ -179,5 +193,35 @@ variable "extra_tags" {
 variable "extra_eb_environment_variables" {
   type        = map(string)
   description = "Optional extra Elastic Beanstalk env vars (avoid secrets here; use dedicated variables)."
+  default     = {}
+}
+
+variable "ecs_desired_count" {
+  type        = number
+  description = "Initial Fargate desired count when deployment_platform is ecs_fargate_codedeploy."
+  default     = 2
+}
+
+variable "ecs_task_cpu" {
+  type        = number
+  description = "Fargate task CPU units (256 = 0.25 vCPU)."
+  default     = 256
+}
+
+variable "ecs_task_memory" {
+  type        = number
+  description = "Fargate task memory MiB."
+  default     = 512
+}
+
+variable "ecs_create_codedeploy_artifact_bucket" {
+  type        = bool
+  description = "Create an S3 bucket for CodeDeploy revisions (appspec payloads). Optional."
+  default     = false
+}
+
+variable "extra_ecs_environment_variables" {
+  type        = map(string)
+  description = "Optional extra container env vars for ECS/Fargate (non-secret)."
   default     = {}
 }
