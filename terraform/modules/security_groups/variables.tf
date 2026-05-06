@@ -1,3 +1,16 @@
+variable "deployment_platform" {
+  type        = string
+  description = "elastic_beanstalk | ecs_fargate_codedeploy — selects which tier security groups are created for DB access."
+
+  validation {
+    condition = contains([
+      "elastic_beanstalk",
+      "ecs_fargate_codedeploy",
+    ], var.deployment_platform)
+    error_message = "deployment_platform must be elastic_beanstalk or ecs_fargate_codedeploy."
+  }
+}
+
 variable "project_name" {
   type = string
 }

@@ -14,6 +14,9 @@ locals {
   azs = slice(data.aws_availability_zones.available.names, 0, 2)
 
   extra_tags = var.extra_tags
+
+  use_elastic_beanstalk      = var.deployment_platform == "elastic_beanstalk"
+  use_ecs_fargate_codedeploy = var.deployment_platform == "ecs_fargate_codedeploy"
 }
 
 module "network" {
@@ -30,12 +33,13 @@ module "network" {
 module "security_groups" {
   source = "../../modules/security_groups"
 
-  project_name     = var.project_name
-  environment      = var.environment
-  vpc_id           = module.network.vpc_id
-  vpc_cidr         = module.network.vpc_cidr_block
-  application_port = 5000
-  tags             = local.extra_tags
+  deployment_platform = var.deployment_platform
+  project_name        = var.project_name
+  environment         = var.environment
+  vpc_id              = module.network.vpc_id
+  vpc_cidr            = module.network.vpc_cidr_block
+  application_port    = 5000
+  tags                = local.extra_tags
 }
 
 module "rds" {
@@ -58,6 +62,8 @@ module "rds" {
 }
 
 module "elastic_beanstalk" {
+  count = local.use_elastic_beanstalk ? 1 : 0
+
   source = "../../modules/elastic_beanstalk"
 
   project_name                = var.project_name
@@ -88,6 +94,40 @@ module "elastic_beanstalk" {
 
   extra_environment_variables = var.extra_eb_environment_variables
   tags                        = local.extra_tags
+
+  depends_on = [module.rds]
+}
+
+module "ecs_fargate_codedeploy" {
+  count = local.use_ecs_fargate_codedeploy ? 1 : 0
+
+  source = "../../modules/ecs_fargate_codedeploy"
+
+  project_name       = var.project_name
+  environment        = var.environment
+  vpc_id             = module.network.vpc_id
+  public_subnet_ids  = module.network.public_subnet_ids
+  private_subnet_ids = module.network.private_subnet_ids
+
+  ecs_tasks_security_group_id = module.security_groups.ecs_tasks_security_group_id
+  database_url                = module.rds.database_url
+  jwt_secret_key              = var.jwt_secret_key
+  jwt_expires_hours           = var.jwt_expires_hours
+  service_username            = var.service_username
+  service_password            = var.service_password
+  run_db_init                 = var.run_db_init
+  db_init_required            = var.db_init_required
+
+  container_port                    = 5000
+  health_check_path                 = "/health"
+  desired_count                     = var.ecs_desired_count
+  task_cpu                          = var.ecs_task_cpu
+  task_memory                       = var.ecs_task_memory
+  extra_environment_variables       = var.extra_ecs_environment_variables
+  create_codedeploy_artifact_bucket = var.ecs_create_codedeploy_artifact_bucket
+  codedeploy_deployment_config_name = var.ecs_codedeploy_deployment_config_name
+  fargate_cpu_architecture          = var.ecs_fargate_cpu_architecture
+  tags                              = local.extra_tags
 
   depends_on = [module.rds]
 }

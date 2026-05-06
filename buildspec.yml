@@ -3,6 +3,7 @@ version: 0.2
 env:
   variables:
     PYTHONUNBUFFERED: "1"
+    # ECS: IMAGE_REPO_NAME should match Terraform ECR repo "<project>-<environment>-app" (e.g. blacklist-svc-dev-app).
 
 phases:
   install:
