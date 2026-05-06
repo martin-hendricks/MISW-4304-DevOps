@@ -4,6 +4,20 @@ variable "aws_region" {
   default     = "us-east-1"
 }
 
+variable "deployment_platform" {
+  type        = string
+  description = "elastic_beanstalk: EB + zip deploy (deploy_eb.sh). ecs_fargate_codedeploy: ECS Fargate + ALB Blue/Green + CodeDeploy + ECR."
+  default     = "elastic_beanstalk"
+
+  validation {
+    condition = contains([
+      "elastic_beanstalk",
+      "ecs_fargate_codedeploy",
+    ], var.deployment_platform)
+    error_message = "deployment_platform must be elastic_beanstalk or ecs_fargate_codedeploy."
+  }
+}
+
 variable "project_name" {
   type        = string
   description = "Short prefix for resource names."
@@ -180,4 +194,110 @@ variable "extra_eb_environment_variables" {
   type        = map(string)
   description = "Optional extra Elastic Beanstalk env vars (avoid secrets here; use dedicated variables)."
   default     = {}
+}
+
+variable "ecs_desired_count" {
+  type        = number
+  description = "Fargate desired count (por task set estable). Durante CodeDeploy Blue/Green puedes ver el doble de tareas unos minutos."
+  default     = 1
+}
+
+variable "ecs_task_cpu" {
+  type        = number
+  description = "Fargate task CPU units (256 = 0.25 vCPU)."
+  default     = 256
+}
+
+variable "ecs_task_memory" {
+  type        = number
+  description = "Fargate task memory MiB."
+  default     = 512
+}
+
+variable "ecs_create_codedeploy_artifact_bucket" {
+  type        = bool
+  description = "Create an S3 bucket for CodeDeploy revisions (appspec payloads). Optional."
+  default     = false
+}
+
+variable "ecs_codedeploy_deployment_config_name" {
+  type        = string
+  description = "CodeDeploy predefined ECS config. Default shifts all traffic at once in blue/green."
+  default     = "CodeDeployDefault.ECSAllAtOnce"
+}
+
+variable "ecs_fargate_cpu_architecture" {
+  type        = string
+  description = "Fargate task arch: X86_64 (amd64 image) or ARM64 (arm64 image). Must match docker push to ECR."
+  default     = "X86_64"
+
+  validation {
+    condition     = contains(["X86_64", "ARM64"], var.ecs_fargate_cpu_architecture)
+    error_message = "ecs_fargate_cpu_architecture must be X86_64 or ARM64."
+  }
+}
+
+variable "extra_ecs_environment_variables" {
+  type        = map(string)
+  description = "Optional extra container env vars for ECS/Fargate (non-secret)."
+  default     = {}
+}
+
+# --- CodeBuild / CodePipeline existentes (escaneados con AWS CLI en la cuenta docente) ---
+
+variable "manage_existing_ci_resources" {
+  type        = bool
+  description = "Si true, Terraform gestiona proyectos CodeBuild (devops-project, DevOps) y pipelines V2 (devops-pipeline, pipeline-beanstalk-devops). Ejecuta los terraform import del comentario en cicd_existing.tf antes del primer apply."
+  default     = false
+}
+
+variable "cicd_existing_artifact_bucket" {
+  type        = string
+  description = "Bucket S3 de artefactos CodePipeline."
+  default     = "codepipeline-us-east-1-a5bd855c3a86-406e-b190-5ebff7290a67"
+}
+
+variable "cicd_existing_github_full_repository_id" {
+  type        = string
+  description = "owner/repo configurado en las acciones Source (CodeStar)."
+  default     = "martin-hendricks/MISW-4304-DevOps"
+}
+
+variable "cicd_existing_github_https_url" {
+  type        = string
+  description = "URL HTTPS del repo para el CodeBuild DevOps (tipo GITHUB)."
+  default     = "https://github.com/martin-hendricks/MISW-4304-DevOps"
+}
+
+variable "cicd_existing_source_branch" {
+  type    = string
+  default = "main"
+}
+
+variable "cicd_existing_codestar_arn_devops_pipeline" {
+  type        = string
+  description = "CodeStar/CodeConnections ARN del pipeline devops-pipeline."
+  default     = "arn:aws:codeconnections:us-east-1:382888552507:connection/724afb3d-65df-4ced-8121-84d21c9644cf"
+}
+
+variable "cicd_existing_codestar_arn_beanstalk_pipeline" {
+  type        = string
+  description = "CodeStar/CodeConnections ARN del pipeline pipeline-beanstalk-devops."
+  default     = "arn:aws:codeconnections:us-east-1:382888552507:connection/d6741ab7-1ec2-47d8-9962-b9a05d801ffe"
+}
+
+variable "cicd_existing_image_repo_name" {
+  type        = string
+  description = "IMAGE_REPO_NAME actual en CodeBuild (ajusta al repo ECR si usas blacklist-svc-*-app)."
+  default     = "blacklist_app"
+}
+
+variable "cicd_existing_eb_application_name" {
+  type    = string
+  default = "blacklist-svc-dev-app"
+}
+
+variable "cicd_existing_eb_environment_name" {
+  type    = string
+  default = "blacklist-svc-dev-env"
 }
