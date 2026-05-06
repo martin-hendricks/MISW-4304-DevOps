@@ -65,7 +65,7 @@ service_password = "replace-with-strong-password"
 # manage_existing_ci_resources = true  # requiere terraform import de 4 recursos (ver comentario cicd_existing.tf)
 # cicd_existing_github_full_repository_id   = "tu-usuario/MISW-4304-DevOps"
 # cicd_existing_github_https_url           = "https://github.com/tu-usuario/MISW-4304-DevOps"
-# cicd_existing_image_repo_name           = "blacklist-svc-dev-app"  # alinear con Terraform ECR si aplica
+# cicd_existing_image_repo_name           = "blacklist_app"           # Solo si deployment_platform es EB; si es ecs_fargate_codedeploy, cicd_existing usa automáticamente el nombre del repo ECR del módulo ECS.
 # cicd_existing_codestar_arn_devops_pipeline    = "arn:aws:codeconnections:..."
 # cicd_existing_codestar_arn_beanstalk_pipeline = "arn:aws:codeconnections:..."
 

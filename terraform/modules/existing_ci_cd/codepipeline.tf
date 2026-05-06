@@ -1,3 +1,19 @@
+locals {
+  devops_deploy_provider = var.pipeline_deploy_target == "ecs_codedeploy" ? "CodeDeployToECS" : "ElasticBeanstalk"
+
+  devops_deploy_configuration = var.pipeline_deploy_target == "ecs_codedeploy" ? {
+    ApplicationName                = var.codedeploy_application_name
+    DeploymentGroupName            = var.codedeploy_deployment_group_name
+    TaskDefinitionTemplateArtifact = "BuildArtifact"
+    TaskDefinitionTemplatePath     = "taskdef.json"
+    AppSpecTemplateArtifact        = "BuildArtifact"
+    AppSpecTemplatePath            = "appspec.json"
+    } : {
+    ApplicationName = var.elastic_beanstalk_application_name
+    EnvironmentName = var.elastic_beanstalk_environment_name
+  }
+}
+
 resource "aws_codepipeline" "devops_with_deploy" {
   name           = "devops-pipeline"
   role_arn       = data.aws_iam_role.codepipeline_devops.arn
@@ -74,7 +90,7 @@ resource "aws_codepipeline" "devops_with_deploy" {
       name             = "Deploy"
       category         = "Deploy"
       owner            = "AWS"
-      provider         = "ElasticBeanstalk"
+      provider         = local.devops_deploy_provider
       version          = "1"
       input_artifacts  = ["BuildArtifact"]
       output_artifacts = []
@@ -82,10 +98,7 @@ resource "aws_codepipeline" "devops_with_deploy" {
       region           = var.aws_region
       run_order        = 1
 
-      configuration = {
-        ApplicationName = var.elastic_beanstalk_application_name
-        EnvironmentName = var.elastic_beanstalk_environment_name
-      }
+      configuration = local.devops_deploy_configuration
     }
 
     on_failure {
@@ -102,6 +115,16 @@ resource "aws_codepipeline" "devops_with_deploy" {
           includes = [var.source_branch_name]
         }
       }
+    }
+  }
+
+  lifecycle {
+    precondition {
+      condition = var.pipeline_deploy_target != "ecs_codedeploy" || (
+        var.codedeploy_application_name != "" &&
+        var.codedeploy_deployment_group_name != ""
+      )
+      error_message = "pipeline_deploy_target = ecs_codedeploy requiere codedeploy_application_name y codedeploy_deployment_group_name."
     }
   }
 }

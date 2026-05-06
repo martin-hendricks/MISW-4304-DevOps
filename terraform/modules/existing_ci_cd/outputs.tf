@@ -17,5 +17,8 @@ output "iam_roles_referenced_note" {
     Los roles codebuild-DevOps-service-role, devops-rol y
     AWSCodePipelineServiceRole-us-east-1-pipeline-beanstalk-devops solo se consultan con data.aws_iam_role.
     Terraform no gestiona políticas IAM aquí (siguen definidas solo en IAM en la cuenta).
+    Si pipeline_deploy_target es ecs_codedeploy, el rol devops-rol debe poder invocar CodeDeploy y registrar
+    despliegues ECS (añade políticas desde el asistente de CodePipeline para ECS Blue/Green o equivalente manual).
+    El rol de CodeBuild necesita push a ECR (como el tutorial: permisos de capa/imagen sobre el repo).
   EOT
 }

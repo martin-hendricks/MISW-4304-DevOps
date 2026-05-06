@@ -1,8 +1,9 @@
-locals {
-  account_id = data.aws_caller_identity.current.account_id
-}
-
 data "aws_caller_identity" "current" {}
+
+locals {
+  account_id           = data.aws_caller_identity.current.account_id
+  ecs_codedeploy_build = var.pipeline_deploy_target == "ecs_codedeploy"
+}
 
 data "aws_iam_role" "codebuild" {
   name = var.codebuild_service_role_name
@@ -34,7 +35,7 @@ resource "aws_codebuild_project" "devops_pipeline" {
 
   source {
     type         = "CODEPIPELINE"
-    buildspec    = "buildspec.yml"
+    buildspec    = local.ecs_codedeploy_build ? "buildspec.pipeline.yml" : "buildspec.yml"
     insecure_ssl = false
   }
 
@@ -48,7 +49,7 @@ resource "aws_codebuild_project" "devops_pipeline" {
     type                        = "LINUX_CONTAINER"
     image_pull_credentials_type = "CODEBUILD"
     # Escaneo tenía false; buildspec.yml usa docker build → true o el build falla en CodeBuild.
-    privileged_mode             = true
+    privileged_mode = true
 
     environment_variable {
       name  = "AWS_ACCOUNT_ID"
@@ -70,6 +71,22 @@ resource "aws_codebuild_project" "devops_pipeline" {
       value = var.aws_region
       type  = "PLAINTEXT"
     }
+
+    dynamic "environment_variable" {
+      for_each = local.ecs_codedeploy_build ? { for k, v in {
+        ECS_EXECUTION_ROLE_ARN = var.ecs_codebuild_execution_role_arn
+        ECS_TASK_ROLE_ARN      = var.ecs_codebuild_task_role_arn
+        ECS_TASK_FAMILY        = var.ecs_codebuild_task_family
+        ECS_AWSLOGS_GROUP      = var.ecs_codebuild_awslogs_group
+        DOCKER_PLATFORM        = trimspace(var.ecs_docker_platform)
+      } : k => v if v != "" } : {}
+
+      content {
+        name  = environment_variable.key
+        value = environment_variable.value
+        type  = "PLAINTEXT"
+      }
+    }
   }
 
   logs_config {
@@ -85,6 +102,18 @@ resource "aws_codebuild_project" "devops_pipeline" {
 
   lifecycle {
     ignore_changes = [encryption_key]
+
+    precondition {
+      condition = !local.ecs_codedeploy_build || (
+        var.codedeploy_application_name != "" &&
+        var.codedeploy_deployment_group_name != "" &&
+        var.ecs_codebuild_execution_role_arn != "" &&
+        var.ecs_codebuild_task_role_arn != "" &&
+        var.ecs_codebuild_task_family != "" &&
+        var.ecs_codebuild_awslogs_group != ""
+      )
+      error_message = "Con pipeline_deploy_target = ecs_codedeploy, rellena codedeploy_* y ecs_codebuild_* (ARNs, family, log group) desde los outputs del módulo ecs_fargate_codedeploy."
+    }
   }
 }
 

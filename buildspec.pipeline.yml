@@ -25,19 +25,27 @@ phases:
   pre_build:
     commands:
       - export AWS_ACCOUNT_ID="${AWS_ACCOUNT_ID:-$(aws sts get-caller-identity --query Account --output text)}"
+      - export IMAGE_TAG="${IMAGE_TAG:-${CODEBUILD_RESOLVED_SOURCE_VERSION:-latest}}"
       - echo "[pre_build] ECR login"
       - aws ecr get-login-password --region "${AWS_DEFAULT_REGION}" | docker login --username AWS --password-stdin "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com"
   build:
     commands:
       - export AWS_ACCOUNT_ID="${AWS_ACCOUNT_ID:-$(aws sts get-caller-identity --query Account --output text)}"
+      - export IMAGE_TAG="${IMAGE_TAG:-${CODEBUILD_RESOLVED_SOURCE_VERSION:-latest}}"
       - export IMAGE_URI="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com/${IMAGE_REPO_NAME}:${IMAGE_TAG}"
       - echo "[build] Docker build + push ${IMAGE_URI}"
-      - docker build -t "${IMAGE_REPO_NAME}:${IMAGE_TAG}" .
+      - |
+        if [ -n "${DOCKER_PLATFORM:-}" ]; then
+          docker build --platform "${DOCKER_PLATFORM}" -t "${IMAGE_REPO_NAME}:${IMAGE_TAG}" .
+        else
+          docker build -t "${IMAGE_REPO_NAME}:${IMAGE_TAG}" .
+        fi
       - docker tag "${IMAGE_REPO_NAME}:${IMAGE_TAG}" "${IMAGE_URI}"
       - docker push "${IMAGE_URI}"
   post_build:
     commands:
       - export AWS_ACCOUNT_ID="${AWS_ACCOUNT_ID:-$(aws sts get-caller-identity --query Account --output text)}"
+      - export IMAGE_TAG="${IMAGE_TAG:-${CODEBUILD_RESOLVED_SOURCE_VERSION:-latest}}"
       - export IMAGE_URI="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com/${IMAGE_REPO_NAME}:${IMAGE_TAG}"
       - mkdir -p artifact
       - cp deploy/codepipeline/taskdef.json deploy/codepipeline/taskdef.rendered.json

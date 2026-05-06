@@ -66,6 +66,59 @@ variable "elastic_beanstalk_environment_name" {
   default     = "blacklist-svc-dev-env"
 }
 
+variable "pipeline_deploy_target" {
+  type        = string
+  description = "elastic_beanstalk: etapa Deploy → Elastic Beanstalk. ecs_codedeploy: Deploy → CodeDeploy ECS blue/green (artefacto taskdef.json + appspec.json desde CodeBuild)."
+  default     = "elastic_beanstalk"
+
+  validation {
+    condition     = contains(["elastic_beanstalk", "ecs_codedeploy"], var.pipeline_deploy_target)
+    error_message = "pipeline_deploy_target must be elastic_beanstalk or ecs_codedeploy."
+  }
+}
+
+variable "codedeploy_application_name" {
+  type        = string
+  description = "Nombre de la aplicación CodeDeploy (compute ECS). Obligatorio si pipeline_deploy_target = ecs_codedeploy."
+  default     = ""
+}
+
+variable "codedeploy_deployment_group_name" {
+  type        = string
+  description = "Grupo de despliegue CodeDeploy. Obligatorio si pipeline_deploy_target = ecs_codedeploy."
+  default     = ""
+}
+
+variable "ecs_codebuild_execution_role_arn" {
+  type        = string
+  description = "ARN rol ejecución task ECS; buildspec.pipeline.yml → taskdef."
+  default     = ""
+}
+
+variable "ecs_codebuild_task_role_arn" {
+  type        = string
+  description = "ARN rol de tarea ECS."
+  default     = ""
+}
+
+variable "ecs_codebuild_task_family" {
+  type        = string
+  description = "family de la task definition ECS (ej. blacklist-svc-dev-task)."
+  default     = ""
+}
+
+variable "ecs_codebuild_awslogs_group" {
+  type        = string
+  description = "Nombre del log group CloudWatch (/ecs/.../app)."
+  default     = ""
+}
+
+variable "ecs_docker_platform" {
+  type        = string
+  description = "Si no vacío, docker build --platform (ej. linux/amd64). Alinear con ecs_fargate_cpu_architecture."
+  default     = ""
+}
+
 variable "tags" {
   type        = map(string)
   description = "Tags en proyectos CodeBuild (CodePipeline tiene API limitada)."
