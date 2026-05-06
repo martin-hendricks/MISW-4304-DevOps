@@ -10,6 +10,10 @@
 # Env (optional overrides):
 #   AWS_REGION, IMAGE_TAG, PROJECT_NAME, ENVIRONMENT (for default TF_DIR if TF_DIR unset)
 #   TF_DIR  — default: ../terraform/environments/dev relative to repo root
+#   DOCKER_BUILD_PLATFORM — si no la defines, el script usa la misma arquitectura que
+#                           terraform output ecs_fargate_cpu_architecture (X86_64 → linux/amd64, ARM64 → linux/arm64).
+#   CODEDEPLOY_STOP_ACTIVE — si es 1, cancela despliegues activos (Created/InProgress/Queued/Ready)
+#                            en este deployment group antes de crear uno nuevo (límite 1 de CodeDeploy).
 #
 # Usage:
 #   ./scripts/deploy_ecs_codedeploy.sh
@@ -36,13 +40,27 @@ TASK_FAMILY="$(terraform -chdir="$TF_DIR" output -raw ecs_task_definition_family
 CD_APP="$(terraform -chdir="$TF_DIR" output -raw ecs_codedeploy_application_name)"
 CD_DG="$(terraform -chdir="$TF_DIR" output -raw ecs_codedeploy_deployment_group_name)"
 
+ECS_ARCH="$(terraform -chdir="$TF_DIR" output -raw ecs_fargate_cpu_architecture 2>/dev/null || true)"
+ECS_ARCH="${ECS_ARCH:-X86_64}"
+case "${ECS_ARCH}" in
+  ARM64) DEFAULT_DOCKER_PLATFORM="linux/arm64" ;;
+  *) DEFAULT_DOCKER_PLATFORM="linux/amd64" ;;
+esac
+DOCKER_BUILD_PLATFORM="${DOCKER_BUILD_PLATFORM:-$DEFAULT_DOCKER_PLATFORM}"
+
+echo "==> Terraform ecs_fargate_cpu_architecture=${ECS_ARCH} → docker --platform ${DOCKER_BUILD_PLATFORM} (override con DOCKER_BUILD_PLATFORM=...)"
+
 FULL_IMAGE="${ECR_URL}:${IMAGE_TAG}"
 
 echo "==> ECR login (${REGION})"
 aws ecr get-login-password --region "$REGION" | docker login --username AWS --password-stdin "${ECR_URL%%/*}"
 
 echo "==> Build and push ${FULL_IMAGE}"
-docker build -t "$FULL_IMAGE" "$ROOT"
+if docker buildx version >/dev/null 2>&1; then
+  docker buildx build --platform "$DOCKER_BUILD_PLATFORM" --load -t "$FULL_IMAGE" "$ROOT"
+else
+  docker build --platform "$DOCKER_BUILD_PLATFORM" -t "$FULL_IMAGE" "$ROOT"
+fi
 docker tag "$FULL_IMAGE" "${ECR_URL}:latest"
 docker push "$FULL_IMAGE"
 docker push "${ECR_URL}:latest"
@@ -86,6 +104,36 @@ jq -n \
       appSpecContent: { content: $content }
     }
   }' > /tmp/codedeploy-request.json
+
+ACTIVE_JSON="$(aws deploy list-deployments \
+  --application-name "$CD_APP" \
+  --deployment-group-name "$CD_DG" \
+  --region "$REGION" \
+  --include-only-statuses Created InProgress Queued Ready \
+  --max-items 10 \
+  --output json)"
+
+ACTIVE_COUNT="$(echo "$ACTIVE_JSON" | jq '.deployments | length')"
+
+if [[ "${ACTIVE_COUNT:-0}" -gt 0 ]]; then
+  echo "==> Despliegues activos en ${CD_DG} (CodeDeploy solo permite uno a la vez):" >&2
+  echo "$ACTIVE_JSON" | jq -r '.deployments[]' | while read -r did; do echo "    ${did}" >&2; done
+  if [[ "${CODEDEPLOY_STOP_ACTIVE:-}" == "1" || "${CODEDEPLOY_STOP_ACTIVE:-}" == "true" ]]; then
+    echo "$ACTIVE_JSON" | jq -r '.deployments[]' | while read -r did; do
+      echo "==> Deteniendo despliegue ${did}"
+      aws deploy stop-deployment --deployment-id "$did" --region "$REGION" || true
+    done
+    echo "==> Esperando liberación del deployment group (20s)..."
+    sleep 20
+  else
+    FIRST="$(echo "$ACTIVE_JSON" | jq -r '.deployments[0]')"
+    echo "" >&2
+    echo "Error: ya hay un despliegue activo. Espera a que termine o ejecuta:" >&2
+    echo "  aws deploy stop-deployment --deployment-id ${FIRST} --region ${REGION}" >&2
+    echo "O reintenta con: CODEDEPLOY_STOP_ACTIVE=1 $0" >&2
+    exit 1
+  fi
+fi
 
 echo "==> CodeDeploy deployment (${CD_APP} / ${CD_DG})"
 DEPLOY_ID="$(aws deploy create-deployment --cli-input-json file:///tmp/codedeploy-request.json \

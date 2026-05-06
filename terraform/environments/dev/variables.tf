@@ -198,8 +198,8 @@ variable "extra_eb_environment_variables" {
 
 variable "ecs_desired_count" {
   type        = number
-  description = "Initial Fargate desired count when deployment_platform is ecs_fargate_codedeploy."
-  default     = 2
+  description = "Fargate desired count (por task set estable). Durante CodeDeploy Blue/Green puedes ver el doble de tareas unos minutos."
+  default     = 1
 }
 
 variable "ecs_task_cpu" {
@@ -218,6 +218,23 @@ variable "ecs_create_codedeploy_artifact_bucket" {
   type        = bool
   description = "Create an S3 bucket for CodeDeploy revisions (appspec payloads). Optional."
   default     = false
+}
+
+variable "ecs_codedeploy_deployment_config_name" {
+  type        = string
+  description = "CodeDeploy predefined ECS config. Default shifts all traffic at once in blue/green."
+  default     = "CodeDeployDefault.ECSAllAtOnce"
+}
+
+variable "ecs_fargate_cpu_architecture" {
+  type        = string
+  description = "Fargate task arch: X86_64 (amd64 image) or ARM64 (arm64 image). Must match docker push to ECR."
+  default     = "X86_64"
+
+  validation {
+    condition     = contains(["X86_64", "ARM64"], var.ecs_fargate_cpu_architecture)
+    error_message = "ecs_fargate_cpu_architecture must be X86_64 or ARM64."
+  }
 }
 
 variable "extra_ecs_environment_variables" {

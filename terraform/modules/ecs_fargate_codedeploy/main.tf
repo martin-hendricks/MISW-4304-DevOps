@@ -233,6 +233,11 @@ resource "aws_ecs_task_definition" "app" {
   execution_role_arn       = aws_iam_role.ecs_task_execution.arn
   task_role_arn            = aws_iam_role.ecs_task.arn
 
+  runtime_platform {
+    operating_system_family = "LINUX"
+    cpu_architecture        = var.fargate_cpu_architecture
+  }
+
   container_definitions = jsonencode([
     {
       name      = local.container_name
@@ -302,8 +307,10 @@ resource "aws_ecs_service" "app" {
     container_port   = var.container_port
   }
 
+  # CodeDeploy actualiza task_definition y balanceadores; desired_count sí puede gestionarse desde Terraform
+  # (evita confusión si escalas en tfvars; durante BG CodeDeploy sigue controlando los task sets).
   lifecycle {
-    ignore_changes = [task_definition, load_balancer, desired_count]
+    ignore_changes = [task_definition, load_balancer]
   }
 
   depends_on = [aws_lb_listener.prod, aws_lb_listener.test]
@@ -339,10 +346,12 @@ resource "aws_codedeploy_app" "ecs" {
 }
 
 resource "aws_codedeploy_deployment_group" "ecs" {
-  app_name               = aws_codedeploy_app.ecs.name
-  deployment_group_name  = "${local.prefix}-dg"
-  service_role_arn       = aws_iam_role.codedeploy.arn
-  deployment_config_name = "CodeDeployDefault.ECSAllAtOnceBlueGreen"
+  app_name              = aws_codedeploy_app.ecs.name
+  deployment_group_name = "${local.prefix}-dg"
+  service_role_arn      = aws_iam_role.codedeploy.arn
+  # Predefined ECS configs use names like CodeDeployDefault.ECSAllAtOnce (there is no ECSAllAtOnceBlueGreen).
+  # See: https://docs.aws.amazon.com/codedeploy/latest/userguide/deployment-configurations.html
+  deployment_config_name = var.codedeploy_deployment_config_name
 
   deployment_style {
     deployment_option = "WITH_TRAFFIC_CONTROL"

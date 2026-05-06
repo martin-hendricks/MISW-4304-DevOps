@@ -73,6 +73,11 @@ output "ecs_cloudwatch_log_group_name" {
   description = "CodeBuild/CodePipeline: set ECS_AWSLOGS_GROUP."
 }
 
+output "ecs_fargate_cpu_architecture" {
+  value       = length(module.ecs_fargate_codedeploy) > 0 ? module.ecs_fargate_codedeploy[0].fargate_cpu_architecture : null
+  description = "Must match docker image in ECR (deploy script picks linux/amd64 vs linux/arm64 from this)."
+}
+
 output "rds_endpoint" {
   value       = module.rds.endpoint
   description = "RDS hostname (credentials are sensitive; see Terraform state)."

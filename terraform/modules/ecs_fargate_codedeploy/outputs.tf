@@ -73,3 +73,8 @@ output "ecs_cloudwatch_log_group_name" {
   value       = aws_cloudwatch_log_group.app.name
   description = "awslogs-group value for task definitions."
 }
+
+output "fargate_cpu_architecture" {
+  value       = var.fargate_cpu_architecture
+  description = "X86_64 or ARM64; docker build --platform must match (see scripts/deploy_ecs_codedeploy.sh)."
+}

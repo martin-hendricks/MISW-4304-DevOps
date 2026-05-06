@@ -40,11 +40,23 @@ service_password = "replace-with-strong-password"
 #
 # Tras cambiar: terraform apply -var-file=terraform.tfvars
 
-# --- ECS + CodeDeploy (solo si deployment_platform = "ecs_fargate_codedeploy") ---
-# Plantillas tipo taller: deploy/codepipeline/appspec.json y taskdef.json; build opcional buildspec.pipeline.yml.
-# ecs_desired_count                   = 2
-# ecs_task_cpu                        = 256
-# ecs_task_memory                     = 512
-# ecs_create_codedeploy_artifact_bucket = false
+# --- ECS + CodeDeploy (solo si deployment_platform = "ecs_fargate_codedeploy"; Blue/Green con ALB) ---
+# Arquitectura Fargate vs ECR (si CannotPull: la task y la imagen deben ser amd64 O arm64, no mezcladas):
+# ecs_fargate_cpu_architecture = "X86_64"  # default; ./scripts/deploy_ecs_codedeploy.sh usa linux/amd64
+# ecs_fargate_cpu_architecture = "ARM64"   # el mismo script usa linux/arm64
+#
+# Plantillas taller: deploy/codepipeline/appspec.json y taskdef.json; build opcional buildspec.pipeline.yml.
+# ecs_desired_count                       = 1   # default; 2 si quieres HA de tareas en producción
+# ecs_task_cpu                           = 256
+# ecs_task_memory                        = 512
+# ecs_create_codedeploy_artifact_bucket  = false
+#
+# Blue/Green: cómo CodeDeploy mueve el tráfico prod entre target groups (elige UNA).
+# ecs_codedeploy_deployment_config_name = "CodeDeployDefault.ECSAllAtOnce"                         # todo el tráfico al nuevo task set en un paso
+# ecs_codedeploy_deployment_config_name = "CodeDeployDefault.ECSLinear10PercentEvery1Minutes"       # +10% cada minuto hasta 100%
+# ecs_codedeploy_deployment_config_name = "CodeDeployDefault.ECSLinear10PercentEvery3Minutes"     # +10% cada 3 min hasta 100%
+# ecs_codedeploy_deployment_config_name = "CodeDeployDefault.ECSCanary10Percent5Minutes"         # canary 10%, espera 5 min, resto
+# ecs_codedeploy_deployment_config_name = "CodeDeployDefault.ECSCanary10Percent15Minutes"         # canary 10%, espera 15 min, resto
+#
 # Cambiar plataforma destruye/crea el tier de cómpute correspondiente (EB o ECS).
 

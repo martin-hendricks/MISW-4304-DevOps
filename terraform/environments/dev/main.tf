@@ -125,6 +125,8 @@ module "ecs_fargate_codedeploy" {
   task_memory                       = var.ecs_task_memory
   extra_environment_variables       = var.extra_ecs_environment_variables
   create_codedeploy_artifact_bucket = var.ecs_create_codedeploy_artifact_bucket
+  codedeploy_deployment_config_name = var.ecs_codedeploy_deployment_config_name
+  fargate_cpu_architecture          = var.ecs_fargate_cpu_architecture
   tags                              = local.extra_tags
 
   depends_on = [module.rds]
