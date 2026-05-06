@@ -119,6 +119,46 @@ variable "ecs_docker_platform" {
   default     = ""
 }
 
+variable "ecs_pipeline_database_url" {
+  type        = string
+  description = "Misma DATABASE_URL que la task Terraform (postgresql+psycopg://...). Inyectada en taskdef vía CodeBuild."
+  default     = ""
+  sensitive   = true
+}
+
+variable "ecs_pipeline_jwt_secret_key" {
+  type        = string
+  description = "JWT secret para contenedor ECS desplegado por pipeline."
+  default     = ""
+  sensitive   = true
+}
+
+variable "ecs_pipeline_jwt_expires_hours" {
+  type    = string
+  default = "24"
+}
+
+variable "ecs_pipeline_service_username" {
+  type    = string
+  default = "admin"
+}
+
+variable "ecs_pipeline_service_password" {
+  type      = string
+  default   = ""
+  sensitive = true
+}
+
+variable "ecs_pipeline_run_db_init" {
+  type    = string
+  default = "true"
+}
+
+variable "ecs_pipeline_db_init_required" {
+  type    = string
+  default = "false"
+}
+
 variable "tags" {
   type        = map(string)
   description = "Tags en proyectos CodeBuild (CodePipeline tiene API limitada)."

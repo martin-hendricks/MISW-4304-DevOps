@@ -11,9 +11,7 @@
 #   IMAGE_REPO_NAME          — ecs_ecr_repository_name
 #   IMAGE_TAG                — etiqueta (ej. $CODEBUILD_RESOLVED_SOURCE_VERSION o fecha)
 #
-# taskdef.json usa <IMAGE1_NAME> como en la guía AWS para que el pipeline pueda sustituir la imagen.
-# Esta plantilla no incluye DATABASE_URL/JWT: la primera revisión debe salir de Terraform o mergear
-# environment/secrets desde SSM antes de producir artifact/taskdef.json (véase comentario en deploy/codepipeline/).
+# taskdef.json: placeholders @@...@ rellenados desde TASKENV_* (CodeBuild env inyectado por Terraform).
 #
 version: 0.2
 
@@ -55,6 +53,25 @@ phases:
       - perl -pi -e 's/\@\@AWSLOGS_GROUP\@\@/$ENV{"ECS_AWSLOGS_GROUP"}/g' deploy/codepipeline/taskdef.rendered.json
       - perl -pi -e 's/\@\@AWS_REGION\@\@/$ENV{"AWS_DEFAULT_REGION"}/g' deploy/codepipeline/taskdef.rendered.json
       - perl -pi -e 's|<IMAGE1_NAME>|$ENV{"IMAGE_URI"}|g' deploy/codepipeline/taskdef.rendered.json
+      - |
+          python3 <<'PY'
+          import os
+          import pathlib
+          p = pathlib.Path("deploy/codepipeline/taskdef.rendered.json")
+          text = p.read_text()
+          subs = {
+              "@@DATABASE_URL@@": os.environ.get("TASKENV_DATABASE_URL", ""),
+              "@@JWT_SECRET_KEY@@": os.environ.get("TASKENV_JWT_SECRET_KEY", ""),
+              "@@JWT_EXPIRES_HOURS@@": os.environ.get("TASKENV_JWT_EXPIRES_HOURS", ""),
+              "@@SERVICE_USERNAME@@": os.environ.get("TASKENV_SERVICE_USERNAME", ""),
+              "@@SERVICE_PASSWORD@@": os.environ.get("TASKENV_SERVICE_PASSWORD", ""),
+              "@@RUN_DB_INIT@@": os.environ.get("TASKENV_RUN_DB_INIT", ""),
+              "@@DB_INIT_REQUIRED@@": os.environ.get("TASKENV_DB_INIT_REQUIRED", ""),
+          }
+          for k, v in subs.items():
+              text = text.replace(k, v)
+          p.write_text(text)
+          PY
       - cp deploy/codepipeline/appspec.json artifact/appspec.json
       - mv deploy/codepipeline/taskdef.rendered.json artifact/taskdef.json
 
