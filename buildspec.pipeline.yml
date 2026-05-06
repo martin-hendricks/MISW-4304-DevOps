@@ -49,11 +49,11 @@ phases:
       - export IMAGE_URI="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com/${IMAGE_REPO_NAME}:${IMAGE_TAG}"
       - mkdir -p artifact
       - cp deploy/codepipeline/taskdef.json deploy/codepipeline/taskdef.rendered.json
-      - perl -pi -e 's/\Q@@EXECUTION_ROLE_ARN@@\E/$ENV{"ECS_EXECUTION_ROLE_ARN"}/g' deploy/codepipeline/taskdef.rendered.json
-      - perl -pi -e 's/\Q@@TASK_ROLE_ARN@@\E/$ENV{"ECS_TASK_ROLE_ARN"}/g' deploy/codepipeline/taskdef.rendered.json
-      - perl -pi -e 's/\Q@@TASK_FAMILY@@\E/$ENV{"ECS_TASK_FAMILY"}/g' deploy/codepipeline/taskdef.rendered.json
-      - perl -pi -e 's/\Q@@AWSLOGS_GROUP@@\E/$ENV{"ECS_AWSLOGS_GROUP"}/g' deploy/codepipeline/taskdef.rendered.json
-      - perl -pi -e 's/\Q@@AWS_REGION@@\E/$ENV{"AWS_DEFAULT_REGION"}/g' deploy/codepipeline/taskdef.rendered.json
+      - perl -pi -e 's/\@\@EXECUTION_ROLE_ARN\@\@/$ENV{"ECS_EXECUTION_ROLE_ARN"}/g' deploy/codepipeline/taskdef.rendered.json
+      - perl -pi -e 's/\@\@TASK_ROLE_ARN\@\@/$ENV{"ECS_TASK_ROLE_ARN"}/g' deploy/codepipeline/taskdef.rendered.json
+      - perl -pi -e 's/\@\@TASK_FAMILY\@\@/$ENV{"ECS_TASK_FAMILY"}/g' deploy/codepipeline/taskdef.rendered.json
+      - perl -pi -e 's/\@\@AWSLOGS_GROUP\@\@/$ENV{"ECS_AWSLOGS_GROUP"}/g' deploy/codepipeline/taskdef.rendered.json
+      - perl -pi -e 's/\@\@AWS_REGION\@\@/$ENV{"AWS_DEFAULT_REGION"}/g' deploy/codepipeline/taskdef.rendered.json
       - perl -pi -e 's|<IMAGE1_NAME>|$ENV{"IMAGE_URI"}|g' deploy/codepipeline/taskdef.rendered.json
       - cp deploy/codepipeline/appspec.json artifact/appspec.json
       - mv deploy/codepipeline/taskdef.rendered.json artifact/taskdef.json
