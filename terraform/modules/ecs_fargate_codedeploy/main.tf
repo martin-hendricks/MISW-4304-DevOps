@@ -209,6 +209,11 @@ resource "aws_lb_listener" "prod" {
   }
 
   tags = local.common_tags
+
+  # CodeDeploy ECS blue/green reasigna el forward del listener al TG “vivo” al finalizar el deploy.
+  lifecycle {
+    ignore_changes = [default_action]
+  }
 }
 
 resource "aws_lb_listener" "test" {
@@ -222,6 +227,10 @@ resource "aws_lb_listener" "test" {
   }
 
   tags = local.common_tags
+
+  lifecycle {
+    ignore_changes = [default_action]
+  }
 }
 
 resource "aws_ecs_task_definition" "app" {

@@ -242,3 +242,62 @@ variable "extra_ecs_environment_variables" {
   description = "Optional extra container env vars for ECS/Fargate (non-secret)."
   default     = {}
 }
+
+# --- CodeBuild / CodePipeline existentes (escaneados con AWS CLI en la cuenta docente) ---
+
+variable "manage_existing_ci_resources" {
+  type        = bool
+  description = "Si true, Terraform gestiona proyectos CodeBuild (devops-project, DevOps) y pipelines V2 (devops-pipeline, pipeline-beanstalk-devops). Ejecuta los terraform import del comentario en cicd_existing.tf antes del primer apply."
+  default     = false
+}
+
+variable "cicd_existing_artifact_bucket" {
+  type        = string
+  description = "Bucket S3 de artefactos CodePipeline."
+  default     = "codepipeline-us-east-1-a5bd855c3a86-406e-b190-5ebff7290a67"
+}
+
+variable "cicd_existing_github_full_repository_id" {
+  type        = string
+  description = "owner/repo configurado en las acciones Source (CodeStar)."
+  default     = "martin-hendricks/MISW-4304-DevOps"
+}
+
+variable "cicd_existing_github_https_url" {
+  type        = string
+  description = "URL HTTPS del repo para el CodeBuild DevOps (tipo GITHUB)."
+  default     = "https://github.com/martin-hendricks/MISW-4304-DevOps"
+}
+
+variable "cicd_existing_source_branch" {
+  type    = string
+  default = "main"
+}
+
+variable "cicd_existing_codestar_arn_devops_pipeline" {
+  type        = string
+  description = "CodeStar/CodeConnections ARN del pipeline devops-pipeline."
+  default     = "arn:aws:codeconnections:us-east-1:382888552507:connection/724afb3d-65df-4ced-8121-84d21c9644cf"
+}
+
+variable "cicd_existing_codestar_arn_beanstalk_pipeline" {
+  type        = string
+  description = "CodeStar/CodeConnections ARN del pipeline pipeline-beanstalk-devops."
+  default     = "arn:aws:codeconnections:us-east-1:382888552507:connection/d6741ab7-1ec2-47d8-9962-b9a05d801ffe"
+}
+
+variable "cicd_existing_image_repo_name" {
+  type        = string
+  description = "IMAGE_REPO_NAME actual en CodeBuild (ajusta al repo ECR si usas blacklist-svc-*-app)."
+  default     = "blacklist_app"
+}
+
+variable "cicd_existing_eb_application_name" {
+  type    = string
+  default = "blacklist-svc-dev-app"
+}
+
+variable "cicd_existing_eb_environment_name" {
+  type    = string
+  default = "blacklist-svc-dev-env"
+}

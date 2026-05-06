@@ -86,3 +86,23 @@ output "rds_endpoint" {
 output "vpc_id" {
   value = module.network.vpc_id
 }
+
+output "cicd_existing_enabled" {
+  value       = var.manage_existing_ci_resources
+  description = "True si el módulo existing_ci_cd está activo."
+}
+
+output "cicd_existing_codebuild_projects" {
+  value       = length(module.existing_ci_cd) > 0 ? module.existing_ci_cd[0].codebuild_projects : null
+  description = "Nombres CodeBuild gestionados cuando manage_existing_ci_resources = true."
+}
+
+output "cicd_existing_codepipeline_names" {
+  value       = length(module.existing_ci_cd) > 0 ? module.existing_ci_cd[0].codepipeline_names : null
+  description = "Nombres CodePipeline gestionados cuando manage_existing_ci_resources = true."
+}
+
+output "cicd_existing_iam_management_note" {
+  value       = length(module.existing_ci_cd) > 0 ? module.existing_ci_cd[0].iam_roles_referenced_note : null
+  description = "IAM: roles referenciados por data, no gestionados como recursos."
+}

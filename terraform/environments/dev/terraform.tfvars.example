@@ -60,3 +60,12 @@ service_password = "replace-with-strong-password"
 #
 # Cambiar plataforma destruye/crea el tier de cómpute correspondiente (EB o ECS).
 
+# --- CodeBuild / CodePipeline ya existentes en la cuenta (opcional; IAM sigue solo en la consola — data sources) ---
+# manage_existing_ci_resources = false
+# manage_existing_ci_resources = true  # requiere terraform import de 4 recursos (ver comentario cicd_existing.tf)
+# cicd_existing_github_full_repository_id   = "tu-usuario/MISW-4304-DevOps"
+# cicd_existing_github_https_url           = "https://github.com/tu-usuario/MISW-4304-DevOps"
+# cicd_existing_image_repo_name           = "blacklist-svc-dev-app"  # alinear con Terraform ECR si aplica
+# cicd_existing_codestar_arn_devops_pipeline    = "arn:aws:codeconnections:..."
+# cicd_existing_codestar_arn_beanstalk_pipeline = "arn:aws:codeconnections:..."
+

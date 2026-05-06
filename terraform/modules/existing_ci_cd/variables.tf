@@ -1,0 +1,73 @@
+variable "aws_region" {
+  type    = string
+  default = "us-east-1"
+}
+
+variable "artifact_bucket_name" {
+  type        = string
+  description = "S3 bucket ya usado por CodePipeline (artefactos)."
+}
+
+variable "codebuild_service_role_name" {
+  type    = string
+  default = "codebuild-DevOps-service-role"
+}
+
+variable "codepipeline_role_name_devops" {
+  type    = string
+  default = "devops-rol"
+}
+
+variable "codepipeline_role_name_beanstalk" {
+  type    = string
+  default = "AWSCodePipelineServiceRole-us-east-1-pipeline-beanstalk-devops"
+}
+
+variable "github_full_repository_id" {
+  type        = string
+  description = "owner/repo para CodeStar connection (valor escaneado en la cuenta)."
+}
+
+variable "source_branch_name" {
+  type    = string
+  default = "main"
+}
+
+variable "codestar_connection_arn_pipeline_devops" {
+  type        = string
+  description = "Connection ARN usado por el pipeline devops-pipeline."
+}
+
+variable "codestar_connection_arn_pipeline_beanstalk" {
+  type        = string
+  description = "Connection ARN usado por pipeline-beanstalk-devops."
+}
+
+variable "github_source_location_https" {
+  type        = string
+  description = "HTTPS URL repo para el proyecto CodeBuild tipo GITHUB."
+}
+
+variable "codebuild_environment_image_repo_name" {
+  type        = string
+  description = "Valor escaneado IMAGE_REPO_NAME."
+  default     = "blacklist_app"
+}
+
+variable "elastic_beanstalk_application_name" {
+  type        = string
+  description = "Nombre app EB para acción Deploy (devops-pipeline)."
+  default     = "blacklist-svc-dev-app"
+}
+
+variable "elastic_beanstalk_environment_name" {
+  type        = string
+  description = "Nombre env EB para acción Deploy."
+  default     = "blacklist-svc-dev-env"
+}
+
+variable "tags" {
+  type        = map(string)
+  description = "Tags en proyectos CodeBuild (CodePipeline tiene API limitada)."
+  default     = {}
+}
