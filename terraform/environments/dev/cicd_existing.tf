@@ -29,6 +29,14 @@ module "existing_ci_cd" {
   ecs_codebuild_awslogs_group      = local.use_ecs_fargate_codedeploy ? module.ecs_fargate_codedeploy[0].ecs_cloudwatch_log_group_name : ""
   ecs_docker_platform              = local.use_ecs_fargate_codedeploy ? (var.ecs_fargate_cpu_architecture == "ARM64" ? "linux/arm64" : "linux/amd64") : ""
 
+  ecs_pipeline_database_url      = local.use_ecs_fargate_codedeploy ? module.rds.database_url : ""
+  ecs_pipeline_jwt_secret_key    = local.use_ecs_fargate_codedeploy ? var.jwt_secret_key : ""
+  ecs_pipeline_jwt_expires_hours = local.use_ecs_fargate_codedeploy ? var.jwt_expires_hours : ""
+  ecs_pipeline_service_username  = local.use_ecs_fargate_codedeploy ? var.service_username : ""
+  ecs_pipeline_service_password  = local.use_ecs_fargate_codedeploy ? var.service_password : ""
+  ecs_pipeline_run_db_init       = local.use_ecs_fargate_codedeploy ? var.run_db_init : ""
+  ecs_pipeline_db_init_required  = local.use_ecs_fargate_codedeploy ? var.db_init_required : ""
+
   elastic_beanstalk_application_name = var.cicd_existing_eb_application_name
   elastic_beanstalk_environment_name = var.cicd_existing_eb_environment_name
   tags                               = local.extra_tags

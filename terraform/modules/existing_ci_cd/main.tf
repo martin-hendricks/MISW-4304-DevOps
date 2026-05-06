@@ -3,6 +3,16 @@ data "aws_caller_identity" "current" {}
 locals {
   account_id           = data.aws_caller_identity.current.account_id
   ecs_codedeploy_build = var.pipeline_deploy_target == "ecs_codedeploy"
+
+  ecs_codebuild_task_env = local.ecs_codedeploy_build ? {
+    TASKENV_DATABASE_URL      = var.ecs_pipeline_database_url
+    TASKENV_JWT_SECRET_KEY    = var.ecs_pipeline_jwt_secret_key
+    TASKENV_JWT_EXPIRES_HOURS = var.ecs_pipeline_jwt_expires_hours
+    TASKENV_SERVICE_USERNAME  = var.ecs_pipeline_service_username
+    TASKENV_SERVICE_PASSWORD  = var.ecs_pipeline_service_password
+    TASKENV_RUN_DB_INIT       = var.ecs_pipeline_run_db_init
+    TASKENV_DB_INIT_REQUIRED  = var.ecs_pipeline_db_init_required
+  } : {}
 }
 
 data "aws_iam_role" "codebuild" {
@@ -73,13 +83,16 @@ resource "aws_codebuild_project" "devops_pipeline" {
     }
 
     dynamic "environment_variable" {
-      for_each = local.ecs_codedeploy_build ? { for k, v in {
-        ECS_EXECUTION_ROLE_ARN = var.ecs_codebuild_execution_role_arn
-        ECS_TASK_ROLE_ARN      = var.ecs_codebuild_task_role_arn
-        ECS_TASK_FAMILY        = var.ecs_codebuild_task_family
-        ECS_AWSLOGS_GROUP      = var.ecs_codebuild_awslogs_group
-        DOCKER_PLATFORM        = trimspace(var.ecs_docker_platform)
-      } : k => v if v != "" } : {}
+      for_each = local.ecs_codedeploy_build ? merge(
+        { for k, v in {
+          ECS_EXECUTION_ROLE_ARN = var.ecs_codebuild_execution_role_arn
+          ECS_TASK_ROLE_ARN      = var.ecs_codebuild_task_role_arn
+          ECS_TASK_FAMILY        = var.ecs_codebuild_task_family
+          ECS_AWSLOGS_GROUP      = var.ecs_codebuild_awslogs_group
+          DOCKER_PLATFORM        = trimspace(var.ecs_docker_platform)
+        } : k => v if v != "" },
+        local.ecs_codebuild_task_env,
+      ) : {}
 
       content {
         name  = environment_variable.key
@@ -110,9 +123,12 @@ resource "aws_codebuild_project" "devops_pipeline" {
         var.ecs_codebuild_execution_role_arn != "" &&
         var.ecs_codebuild_task_role_arn != "" &&
         var.ecs_codebuild_task_family != "" &&
-        var.ecs_codebuild_awslogs_group != ""
+        var.ecs_codebuild_awslogs_group != "" &&
+        var.ecs_pipeline_database_url != "" &&
+        var.ecs_pipeline_jwt_secret_key != "" &&
+        var.ecs_pipeline_service_password != ""
       )
-      error_message = "Con pipeline_deploy_target = ecs_codedeploy, rellena codedeploy_* y ecs_codebuild_* (ARNs, family, log group) desde los outputs del módulo ecs_fargate_codedeploy."
+      error_message = "Con pipeline_deploy_target = ecs_codedeploy, rellena codedeploy_*, ecs_codebuild_* y ecs_pipeline_* (DB URL, JWT, password servicio) para el taskdef del pipeline."
     }
   }
 }
