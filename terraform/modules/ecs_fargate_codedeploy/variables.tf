@@ -105,6 +105,12 @@ variable "codedeploy_deployment_config_name" {
   default     = "CodeDeployDefault.ECSAllAtOnce"
 }
 
+variable "codedeploy_blue_termination_wait_minutes" {
+  type        = number
+  description = "Minutos de espera tras éxito antes de terminar el task set azul (Blue/Green ECS)."
+  default     = 1
+}
+
 variable "fargate_cpu_architecture" {
   type        = string
   description = "Task CPU architecture. Must match the image in ECR (X86_64 = linux/amd64 default on Fargate; ARM64 for linux/arm64 e.g. docker build on Apple Silicon without buildx)."

@@ -29,6 +29,8 @@ locals {
 resource "aws_ecr_repository" "app" {
   name                 = "${local.prefix}-app"
   image_tag_mutability = "MUTABLE"
+  # Permite terraform destroy aunque queden imágenes (pushes del pipeline o locales).
+  force_delete = true
 
   image_scanning_configuration {
     scan_on_push = true
@@ -380,7 +382,7 @@ resource "aws_codedeploy_deployment_group" "ecs" {
 
     terminate_blue_instances_on_deployment_success {
       action                           = "TERMINATE"
-      termination_wait_time_in_minutes = 5
+      termination_wait_time_in_minutes = var.codedeploy_blue_termination_wait_minutes
     }
   }
 

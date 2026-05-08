@@ -118,16 +118,17 @@ module "ecs_fargate_codedeploy" {
   run_db_init                 = var.run_db_init
   db_init_required            = var.db_init_required
 
-  container_port                    = 5000
-  health_check_path                 = "/health"
-  desired_count                     = var.ecs_desired_count
-  task_cpu                          = var.ecs_task_cpu
-  task_memory                       = var.ecs_task_memory
-  extra_environment_variables       = var.extra_ecs_environment_variables
-  create_codedeploy_artifact_bucket = var.ecs_create_codedeploy_artifact_bucket
-  codedeploy_deployment_config_name = var.ecs_codedeploy_deployment_config_name
-  fargate_cpu_architecture          = var.ecs_fargate_cpu_architecture
-  tags                              = local.extra_tags
+  container_port                           = 5000
+  health_check_path                        = "/health"
+  desired_count                            = var.ecs_desired_count
+  task_cpu                                 = var.ecs_task_cpu
+  task_memory                              = var.ecs_task_memory
+  extra_environment_variables              = var.extra_ecs_environment_variables
+  create_codedeploy_artifact_bucket        = var.ecs_create_codedeploy_artifact_bucket
+  codedeploy_deployment_config_name        = var.ecs_codedeploy_deployment_config_name
+  codedeploy_blue_termination_wait_minutes = var.ecs_codedeploy_blue_termination_wait_minutes
+  fargate_cpu_architecture                 = var.ecs_fargate_cpu_architecture
+  tags                                     = local.extra_tags
 
   depends_on = [module.rds]
 }
