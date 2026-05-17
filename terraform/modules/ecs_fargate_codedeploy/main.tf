@@ -316,10 +316,11 @@ resource "aws_ecs_service" "app" {
     container_port   = var.container_port
   }
 
-  # CodeDeploy actualiza task_definition y balanceadores; desired_count sí puede gestionarse desde Terraform
-  # (evita confusión si escalas en tfvars; durante BG CodeDeploy sigue controlando los task sets).
+  # CodeDeploy registra revisión de task definición y task sets por despliegue; no redeclarar task_definition desde TF.
+  # El orden load_balancer (blue antes que green) debe coincidir con el par en aws_codedeploy_deployment_group;
+  # si se ignora, drift causa: "Primary taskset target group must be behind listener" en CodeDeploy.
   lifecycle {
-    ignore_changes = [task_definition, load_balancer]
+    ignore_changes = [task_definition]
   }
 
   depends_on = [aws_lb_listener.prod, aws_lb_listener.test]
