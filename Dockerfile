@@ -22,6 +22,5 @@ RUN chmod +x /app/entrypoint.sh
 
 EXPOSE 5000
 
-# Tutorial 8: newrelic-admin wraps Gunicorn; entrypoint.sh runs optional DB init first.
 ENTRYPOINT ["newrelic-admin", "run-program", "/bin/sh", "/app/entrypoint.sh"]
 CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "2", "--threads", "4", "--timeout", "120", "run:application"]
