@@ -226,6 +226,12 @@ variable "ecs_codedeploy_deployment_config_name" {
   default     = "CodeDeployDefault.ECSAllAtOnce"
 }
 
+variable "ecs_codedeploy_blue_termination_wait_minutes" {
+  type        = number
+  description = "Espera (min) antes de terminar el task set azul tras un deploy exitoso. Antes: 5 en el módulo."
+  default     = 1
+}
+
 variable "ecs_fargate_cpu_architecture" {
   type        = string
   description = "Fargate task arch: X86_64 (amd64 image) or ARM64 (arm64 image). Must match docker push to ECR."

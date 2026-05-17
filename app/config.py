@@ -9,7 +9,7 @@ class Config:
     ##Config BD
     SQLALCHEMY_DATABASE_URI = os.environ.get(
         'DATABASE_URL',
-        'postgresql://user:password@localhost:5432/blacklist_db'
+        'postgresql+psycopg://user:password@localhost:5432/blacklist_db'
     )
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 

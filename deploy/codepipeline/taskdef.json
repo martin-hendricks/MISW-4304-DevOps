@@ -17,6 +17,36 @@
           "protocol": "tcp"
         }
       ],
+      "environment": [
+        {
+          "name": "DATABASE_URL",
+          "value": "@@DATABASE_URL@@"
+        },
+        {
+          "name": "JWT_SECRET_KEY",
+          "value": "@@JWT_SECRET_KEY@@"
+        },
+        {
+          "name": "JWT_EXPIRES_HOURS",
+          "value": "@@JWT_EXPIRES_HOURS@@"
+        },
+        {
+          "name": "SERVICE_USERNAME",
+          "value": "@@SERVICE_USERNAME@@"
+        },
+        {
+          "name": "SERVICE_PASSWORD",
+          "value": "@@SERVICE_PASSWORD@@"
+        },
+        {
+          "name": "RUN_DB_INIT",
+          "value": "@@RUN_DB_INIT@@"
+        },
+        {
+          "name": "DB_INIT_REQUIRED",
+          "value": "@@DB_INIT_REQUIRED@@"
+        }
+      ],
       "logConfiguration": {
         "logDriver": "awslogs",
         "options": {

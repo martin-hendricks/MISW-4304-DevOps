@@ -58,6 +58,9 @@ service_password = "replace-with-strong-password"
 # ecs_codedeploy_deployment_config_name = "CodeDeployDefault.ECSCanary10Percent5Minutes"         # canary 10%, espera 5 min, resto
 # ecs_codedeploy_deployment_config_name = "CodeDeployDefault.ECSCanary10Percent15Minutes"         # canary 10%, espera 15 min, resto
 #
+# Tras éxito, minutos de espera antes de terminar el task set azul (default 1; antes el módulo usaba 5).
+# ecs_codedeploy_blue_termination_wait_minutes = 1
+#
 # Cambiar plataforma destruye/crea el tier de cómpute correspondiente (EB o ECS).
 
 # --- CodeBuild / CodePipeline ya existentes en la cuenta (opcional; IAM sigue solo en la consola — data sources) ---
