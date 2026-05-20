@@ -3,7 +3,7 @@ FROM public.ecr.aws/docker/library/python:3.12-slim
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1
 
-ENV NEW_RELIC_APP_NAME="blacklist-service" \
+ENV NEW_RELIC_APP_NAME="blacklist-service-prod" \
     NEW_RELIC_CONFIG_FILE=/app/newrelic.ini \
     NEW_RELIC_LOG=stdout \
     NEW_RELIC_DISTRIBUTED_TRACING_ENABLED=true \
